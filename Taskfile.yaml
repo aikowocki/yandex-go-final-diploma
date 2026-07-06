@@ -1,0 +1,61 @@
+version: "3"
+
+tasks:
+  proto-generate:
+    desc: Генерирует Go код из proto файлов
+    cmds:
+      - rm -rf api/proto/gen
+      - buf generate api/proto
+
+  migrate-create:
+    desc: Создать новую миграцию
+    cmds:
+      - migrate create -ext sql -dir internal/server/infra/postgres/migrations -format 20060102150405 {{.CLI_ARGS}}
+
+  build-server:
+    desc: Собрать сервер
+    cmds:
+      - go build -o bin/gophkeeper-server ./cmd/server
+
+  build-client:
+    desc: Собрать клиент
+    vars:
+      VERSION: '{{default "dev" .VERSION}}'
+      BUILD_DATE:
+        sh: date -u +%Y-%m-%dT%H:%M:%SZ
+    cmds:
+      - go build -ldflags "-X main.version={{.VERSION}} -X main.buildDate={{.BUILD_DATE}}" -o bin/gophkeeper-client ./cmd/client
+
+  build:
+    desc: Собрать сервер и клиент
+    cmds:
+      - task: build-server
+      - task: build-client
+
+  run-server:
+    desc: Запустить бинарник сервера
+    cmds:
+      - go run ./cmd/server
+
+  run-client:
+    desc: Запустить бинарник клиента
+    cmds:
+      - go run ./cmd/client {{.CLI_ARGS}}
+
+  docker-up:
+    desc: Поднять сервер в докере (postgres + server)
+    dir: deployments
+    cmds:
+      - docker compose up --build -d
+
+  docker-down:
+    desc: Остановить сервер
+    dir: deployments
+    cmds:
+      - docker compose down
+
+  coverage:
+    desc: Run tests with coverage (excluding generated code)
+    cmds:
+      - go test ./... -coverpkg=./internal/...,./pkg/... -coverprofile=coverage.out
+      - go tool cover -func=coverage.out | grep -v "/gen/" | tail -1

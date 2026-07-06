@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1";
+
+// AuthService — аутентификация и служебные методы.
+service AuthService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  // rpc Register(RegisterRequest) returns (RegisterResponse);
+  // rpc Login(LoginRequest) returns (LoginResponse);
+  // rpc RefreshToken(RefreshRequest) returns (RefreshResponse);
+}
+
+// TODO: VaultService — CRUD ваултов, CheckFreshness
+// TODO: SecretService — CRUD секретов, Tier 2a/2b/3
+// TODO: BlobService — стриминг бинарных данных
+
+message PingRequest {}
+
+message PingResponse {
+  string message = 1;
+}

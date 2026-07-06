@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gophkeeper
+      POSTGRES_PASSWORD: gophkeeper
+      POSTGRES_DB: gophkeeper
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gophkeeper"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  server:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GRPC_ADDR: ":9090"
+      DATABASE_DSN: "postgres://gophkeeper:gophkeeper@postgres:5432/gophkeeper?sslmode=disable"
+      JWT_SECRET: "dev-secret-change-me"
+      LOG_LEVEL: "info"
+    ports:
+      - "9090:9090"
+
+volumes:
+  pgdata:

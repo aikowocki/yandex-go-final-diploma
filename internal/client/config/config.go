@@ -46,6 +46,11 @@ func parseClientConfig(args []string, defaultDataDir string) (*ClientConfig, err
 	return &cfg, nil
 }
 
+// DefaultDataDir возвращает каталог данных клиента по умолчанию (<UserConfigDir>/gophkeeper).
+func DefaultDataDir() (string, error) {
+	return defaultDataDir()
+}
+
 func defaultDataDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {

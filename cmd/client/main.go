@@ -2,11 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/alecthomas/kong"
+
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/app"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cli"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/config"
 )
 
 var (
@@ -15,14 +19,41 @@ var (
 )
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "version" {
-		fmt.Printf("gophkeeper-client %s (built %s)\n", version, formatBuildDate(buildDate))
-		return
+	dataDir, err := config.DefaultDataDir()
+	if err != nil {
+		fatal(err.Error())
 	}
 
-	if err := app.Run(); err != nil {
-		log.Fatal(err)
+	var root cli.CLI
+	kctx := kong.Parse(&root,
+		kong.Name("gophkeeper-client"),
+		kong.Description("GophKeeper client"),
+		kong.Vars{"default_data_dir": dataDir},
+		kong.Configuration(kong.JSON, filepath.Join(dataDir, "config.json")),
+		kong.UsageOnError(),
+	)
+
+	container, err := app.New(&root.Config)
+	if err != nil {
+		fatal(err.Error())
 	}
+	defer container.Close()
+
+	kctx.Bind(
+		container.Auth,
+		container.GRPC,
+		container.Localizer,
+		&cli.BuildInfo{Version: version, Date: formatBuildDate(buildDate)},
+	)
+
+	if err := kctx.Run(); err != nil {
+		fatal(cli.RenderError(container.Localizer, err))
+	}
+}
+
+func fatal(msg string) {
+	_, _ = fmt.Fprintln(os.Stderr, msg)
+	os.Exit(1)
 }
 
 func formatBuildDate(raw string) string {

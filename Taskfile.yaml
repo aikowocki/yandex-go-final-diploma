@@ -7,6 +7,23 @@ tasks:
       - rm -rf api/proto/gen
       - buf generate api/proto
 
+  sqlc-generate:
+    desc: Генерирует Go код из SQL-запросов (sqlc.yaml)
+    cmds:
+      - sqlc generate
+
+  mocks-generate:
+    desc: Генерирует моки интерфейсов через mockery (.mockery.yaml)
+    cmds:
+      - mockery
+
+  generate:
+    desc: Прогнать всю кодогенерацию (proto, sqlc, mocks)
+    cmds:
+      - task: proto-generate
+      - task: sqlc-generate
+      - task: mocks-generate
+
   migrate-create:
     desc: Создать новую миграцию
     cmds:

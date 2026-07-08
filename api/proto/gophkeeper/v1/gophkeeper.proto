@@ -7,9 +7,10 @@ option go_package = "github.com/aikowocki/yandex-go-final-diploma/api/proto/gen/
 // AuthService — аутентификация и служебные методы.
 service AuthService {
   rpc Ping(PingRequest) returns (PingResponse);
-  // rpc Register(RegisterRequest) returns (RegisterResponse);
-  // rpc Login(LoginRequest) returns (LoginResponse);
-  // rpc RefreshToken(RefreshRequest) returns (RefreshResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc SetupEncryption(SetupEncryptionRequest) returns (SetupEncryptionResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
 }
 
 // TODO: VaultService — CRUD ваултов, CheckFreshness
@@ -20,4 +21,45 @@ message PingRequest {}
 
 message PingResponse {
   string message = 1;
+}
+
+message RegisterRequest {
+  string login = 1;
+  bytes login_credential = 2; // уходит на сервер как есть, по TLS; сервер сам хеширует (Argon2id)
+}
+
+message RegisterResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message SetupEncryptionRequest {
+  // user_id берётся из access-токена (JWT-интерцептор), в запросе не передаётся.
+  bytes enc_kdf_salt = 1;
+  bytes enc_kdf_params = 2; // JSON crypto.Params
+}
+
+message SetupEncryptionResponse {}
+
+message LoginRequest {
+  string login = 1;
+  bytes login_credential = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bytes enc_kdf_salt = 3;
+  bytes enc_kdf_params = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bytes enc_kdf_salt = 3;
+  bytes enc_kdf_params = 4;
 }

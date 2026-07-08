@@ -4,20 +4,28 @@ import (
 	"context"
 	"net"
 
-	pb "github.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1"
 	"google.golang.org/grpc"
+
+	pb "github.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/interceptor"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth"
 )
 
 // Server оборачивает gRPC-сервер.
 type Server struct {
 	pb.UnimplementedAuthServiceServer
 	grpcServer *grpc.Server
+	auth       *auth.UseCase
 }
 
 // New создаёт новый gRPC-сервер с зарегистрированными сервисами.
-func New() *Server {
+func New(authUseCase *auth.UseCase, tokenVerifier interceptor.TokenVerifier) *Server {
 	s := &Server{
-		grpcServer: grpc.NewServer(),
+		auth: authUseCase,
+		grpcServer: grpc.NewServer(
+			grpc.UnaryInterceptor(interceptor.Auth(tokenVerifier)),
+		),
 	}
 	pb.RegisterAuthServiceServer(s.grpcServer, s)
 	return s
@@ -40,4 +48,40 @@ func (s *Server) Stop() {
 // Ping — проверка связности.
 func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingResponse, error) {
 	return &pb.PingResponse{Message: "pong"}, nil
+}
+
+func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+	res, err := s.auth.Register(ctx, mapper.RegisterParams(req))
+	if err != nil {
+		return nil, mapAuthErr(err)
+	}
+	return mapper.RegisterResponse(res), nil
+}
+
+func (s *Server) SetupEncryption(ctx context.Context, req *pb.SetupEncryptionRequest) (*pb.SetupEncryptionResponse, error) {
+	userID, ok := interceptor.UserIDFromContext(ctx)
+	if !ok {
+		return nil, mapAuthErr(auth.ErrUserNotFound)
+	}
+
+	if err := s.auth.SetupEncryption(ctx, mapper.SetupEncryptionParams(userID, req)); err != nil {
+		return nil, mapAuthErr(err)
+	}
+	return &pb.SetupEncryptionResponse{}, nil
+}
+
+func (s *Server) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+	res, err := s.auth.Login(ctx, mapper.LoginParams(req))
+	if err != nil {
+		return nil, mapAuthErr(err)
+	}
+	return mapper.LoginResponse(res), nil
+}
+
+func (s *Server) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
+	res, err := s.auth.RefreshToken(ctx, mapper.RefreshTokenParams(req))
+	if err != nil {
+		return nil, mapAuthErr(err)
+	}
+	return mapper.RefreshTokenResponse(res), nil
 }

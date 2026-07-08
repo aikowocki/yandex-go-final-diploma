@@ -21,7 +21,7 @@ func New(ctx context.Context) (*Container, error) {
 		return nil, fmt.Errorf("database: %w", err)
 	}
 
-	grpcSrv := providers.NewGRPC()
+	grpcSrv := providers.NewGRPC(cfg, db)
 
 	return &Container{
 		Config: cfg,

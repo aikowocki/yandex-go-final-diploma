@@ -7,3 +7,4 @@ sql:
       go:
         package: "gen"
         out: "internal/server/infra/postgres/gen"
+        sql_package: "pgx/v5"

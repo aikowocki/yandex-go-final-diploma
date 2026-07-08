@@ -101,6 +101,431 @@ func (x *PingResponse) GetMessage() string {
 	return ""
 }
 
+type RegisterRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Login           string                 `protobuf:"bytes,1,opt,name=login,proto3" json:"login,omitempty"`
+	LoginCredential []byte                 `protobuf:"bytes,2,opt,name=login_credential,json=loginCredential,proto3" json:"login_credential,omitempty"` // уходит на сервер как есть, по TLS; сервер сам хеширует (Argon2id)
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RegisterRequest) Reset() {
+	*x = RegisterRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterRequest) ProtoMessage() {}
+
+func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
+func (*RegisterRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RegisterRequest) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetLoginCredential() []byte {
+	if x != nil {
+		return x.LoginCredential
+	}
+	return nil
+}
+
+type RegisterResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterResponse) Reset() {
+	*x = RegisterResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterResponse) ProtoMessage() {}
+
+func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
+func (*RegisterResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RegisterResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RegisterResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+type SetupEncryptionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// user_id берётся из access-токена (JWT-интерцептор), в запросе не передаётся.
+	EncKdfSalt    []byte `protobuf:"bytes,1,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
+	EncKdfParams  []byte `protobuf:"bytes,2,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"` // JSON crypto.Params
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetupEncryptionRequest) Reset() {
+	*x = SetupEncryptionRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetupEncryptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetupEncryptionRequest) ProtoMessage() {}
+
+func (x *SetupEncryptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetupEncryptionRequest.ProtoReflect.Descriptor instead.
+func (*SetupEncryptionRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SetupEncryptionRequest) GetEncKdfSalt() []byte {
+	if x != nil {
+		return x.EncKdfSalt
+	}
+	return nil
+}
+
+func (x *SetupEncryptionRequest) GetEncKdfParams() []byte {
+	if x != nil {
+		return x.EncKdfParams
+	}
+	return nil
+}
+
+type SetupEncryptionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetupEncryptionResponse) Reset() {
+	*x = SetupEncryptionResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetupEncryptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetupEncryptionResponse) ProtoMessage() {}
+
+func (x *SetupEncryptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetupEncryptionResponse.ProtoReflect.Descriptor instead.
+func (*SetupEncryptionResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{5}
+}
+
+type LoginRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Login           string                 `protobuf:"bytes,1,opt,name=login,proto3" json:"login,omitempty"`
+	LoginCredential []byte                 `protobuf:"bytes,2,opt,name=login_credential,json=loginCredential,proto3" json:"login_credential,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LoginRequest) Reset() {
+	*x = LoginRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginRequest) ProtoMessage() {}
+
+func (x *LoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
+func (*LoginRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LoginRequest) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetLoginCredential() []byte {
+	if x != nil {
+		return x.LoginCredential
+	}
+	return nil
+}
+
+type LoginResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	EncKdfSalt    []byte                 `protobuf:"bytes,3,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
+	EncKdfParams  []byte                 `protobuf:"bytes,4,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginResponse) Reset() {
+	*x = LoginResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginResponse) ProtoMessage() {}
+
+func (x *LoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
+func (*LoginResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *LoginResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetEncKdfSalt() []byte {
+	if x != nil {
+		return x.EncKdfSalt
+	}
+	return nil
+}
+
+func (x *LoginResponse) GetEncKdfParams() []byte {
+	if x != nil {
+		return x.EncKdfParams
+	}
+	return nil
+}
+
+type RefreshTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTokenRequest) Reset() {
+	*x = RefreshTokenRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTokenRequest) ProtoMessage() {}
+
+func (x *RefreshTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTokenRequest.ProtoReflect.Descriptor instead.
+func (*RefreshTokenRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *RefreshTokenRequest) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+type RefreshTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
+	EncKdfSalt    []byte                 `protobuf:"bytes,3,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
+	EncKdfParams  []byte                 `protobuf:"bytes,4,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshTokenResponse) Reset() {
+	*x = RefreshTokenResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshTokenResponse) ProtoMessage() {}
+
+func (x *RefreshTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshTokenResponse.ProtoReflect.Descriptor instead.
+func (*RefreshTokenResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *RefreshTokenResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *RefreshTokenResponse) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
+	}
+	return ""
+}
+
+func (x *RefreshTokenResponse) GetEncKdfSalt() []byte {
+	if x != nil {
+		return x.EncKdfSalt
+	}
+	return nil
+}
+
+func (x *RefreshTokenResponse) GetEncKdfParams() []byte {
+	if x != nil {
+		return x.EncKdfParams
+	}
+	return nil
+}
+
 var File_gophkeeper_v1_gophkeeper_proto protoreflect.FileDescriptor
 
 const file_gophkeeper_v1_gophkeeper_proto_rawDesc = "" +
@@ -108,9 +533,41 @@ const file_gophkeeper_v1_gophkeeper_proto_rawDesc = "" +
 	"\x1egophkeeper/v1/gophkeeper.proto\x12\rgophkeeper.v1\"\r\n" +
 	"\vPingRequest\"(\n" +
 	"\fPingResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2N\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"R\n" +
+	"\x0fRegisterRequest\x12\x14\n" +
+	"\x05login\x18\x01 \x01(\tR\x05login\x12)\n" +
+	"\x10login_credential\x18\x02 \x01(\fR\x0floginCredential\"Z\n" +
+	"\x10RegisterResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"`\n" +
+	"\x16SetupEncryptionRequest\x12 \n" +
+	"\fenc_kdf_salt\x18\x01 \x01(\fR\n" +
+	"encKdfSalt\x12$\n" +
+	"\x0eenc_kdf_params\x18\x02 \x01(\fR\fencKdfParams\"\x19\n" +
+	"\x17SetupEncryptionResponse\"O\n" +
+	"\fLoginRequest\x12\x14\n" +
+	"\x05login\x18\x01 \x01(\tR\x05login\x12)\n" +
+	"\x10login_credential\x18\x02 \x01(\fR\x0floginCredential\"\x9f\x01\n" +
+	"\rLoginResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12 \n" +
+	"\fenc_kdf_salt\x18\x03 \x01(\fR\n" +
+	"encKdfSalt\x12$\n" +
+	"\x0eenc_kdf_params\x18\x04 \x01(\fR\fencKdfParams\":\n" +
+	"\x13RefreshTokenRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"\xa6\x01\n" +
+	"\x14RefreshTokenResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12 \n" +
+	"\fenc_kdf_salt\x18\x03 \x01(\fR\n" +
+	"encKdfSalt\x12$\n" +
+	"\x0eenc_kdf_params\x18\x04 \x01(\fR\fencKdfParams2\x9a\x03\n" +
 	"\vAuthService\x12?\n" +
-	"\x04Ping\x12\x1a.gophkeeper.v1.PingRequest\x1a\x1b.gophkeeper.v1.PingResponseBJZHgithub.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1b\x06proto3"
+	"\x04Ping\x12\x1a.gophkeeper.v1.PingRequest\x1a\x1b.gophkeeper.v1.PingResponse\x12K\n" +
+	"\bRegister\x12\x1e.gophkeeper.v1.RegisterRequest\x1a\x1f.gophkeeper.v1.RegisterResponse\x12`\n" +
+	"\x0fSetupEncryption\x12%.gophkeeper.v1.SetupEncryptionRequest\x1a&.gophkeeper.v1.SetupEncryptionResponse\x12B\n" +
+	"\x05Login\x12\x1b.gophkeeper.v1.LoginRequest\x1a\x1c.gophkeeper.v1.LoginResponse\x12W\n" +
+	"\fRefreshToken\x12\".gophkeeper.v1.RefreshTokenRequest\x1a#.gophkeeper.v1.RefreshTokenResponseBJZHgithub.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1b\x06proto3"
 
 var (
 	file_gophkeeper_v1_gophkeeper_proto_rawDescOnce sync.Once
@@ -124,16 +581,32 @@ func file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP() []byte {
 	return file_gophkeeper_v1_gophkeeper_proto_rawDescData
 }
 
-var file_gophkeeper_v1_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_gophkeeper_v1_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_gophkeeper_v1_gophkeeper_proto_goTypes = []any{
-	(*PingRequest)(nil),  // 0: gophkeeper.v1.PingRequest
-	(*PingResponse)(nil), // 1: gophkeeper.v1.PingResponse
+	(*PingRequest)(nil),             // 0: gophkeeper.v1.PingRequest
+	(*PingResponse)(nil),            // 1: gophkeeper.v1.PingResponse
+	(*RegisterRequest)(nil),         // 2: gophkeeper.v1.RegisterRequest
+	(*RegisterResponse)(nil),        // 3: gophkeeper.v1.RegisterResponse
+	(*SetupEncryptionRequest)(nil),  // 4: gophkeeper.v1.SetupEncryptionRequest
+	(*SetupEncryptionResponse)(nil), // 5: gophkeeper.v1.SetupEncryptionResponse
+	(*LoginRequest)(nil),            // 6: gophkeeper.v1.LoginRequest
+	(*LoginResponse)(nil),           // 7: gophkeeper.v1.LoginResponse
+	(*RefreshTokenRequest)(nil),     // 8: gophkeeper.v1.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil),    // 9: gophkeeper.v1.RefreshTokenResponse
 }
 var file_gophkeeper_v1_gophkeeper_proto_depIdxs = []int32{
 	0, // 0: gophkeeper.v1.AuthService.Ping:input_type -> gophkeeper.v1.PingRequest
-	1, // 1: gophkeeper.v1.AuthService.Ping:output_type -> gophkeeper.v1.PingResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: gophkeeper.v1.AuthService.Register:input_type -> gophkeeper.v1.RegisterRequest
+	4, // 2: gophkeeper.v1.AuthService.SetupEncryption:input_type -> gophkeeper.v1.SetupEncryptionRequest
+	6, // 3: gophkeeper.v1.AuthService.Login:input_type -> gophkeeper.v1.LoginRequest
+	8, // 4: gophkeeper.v1.AuthService.RefreshToken:input_type -> gophkeeper.v1.RefreshTokenRequest
+	1, // 5: gophkeeper.v1.AuthService.Ping:output_type -> gophkeeper.v1.PingResponse
+	3, // 6: gophkeeper.v1.AuthService.Register:output_type -> gophkeeper.v1.RegisterResponse
+	5, // 7: gophkeeper.v1.AuthService.SetupEncryption:output_type -> gophkeeper.v1.SetupEncryptionResponse
+	7, // 8: gophkeeper.v1.AuthService.Login:output_type -> gophkeeper.v1.LoginResponse
+	9, // 9: gophkeeper.v1.AuthService.RefreshToken:output_type -> gophkeeper.v1.RefreshTokenResponse
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -150,7 +623,7 @@ func file_gophkeeper_v1_gophkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gophkeeper_v1_gophkeeper_proto_rawDesc), len(file_gophkeeper_v1_gophkeeper_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

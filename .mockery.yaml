@@ -12,6 +12,7 @@ packages:
       ServerClient:
       TokenStore:
       Crypto:
+      Cipher:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth:
     interfaces:
       UserRepository:

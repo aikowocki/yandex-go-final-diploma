@@ -8,6 +8,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// Секреты внутри ваултов.
+type Secret struct {
+	ID      pgtype.UUID
+	VaultID pgtype.UUID
+	// Тип секрета (ОТКРЫТО, не шифруется): 1=login_password, 2=text, 3=binary, 4=bank_card, 5=totp.
+	Type int16
+	// Tier 2a: поля строки списка, видимые всегда (title/tags/uri/username), AEAD под VaultKey.
+	EncRow []byte
+	// Tier 2b: расширенный searchable-индекс (note/custom_fields), AEAD под VaultKey. Догружается в фоне.
+	EncIndex []byte
+	// Tier 3: чувствительное тело (пароль/PAN/CVV/секрет TOTP), AEAD под VaultKey.
+	EncPayload []byte
+	// Ключ объекта в MinIO для крупных бинарей.
+	BlobRef  pgtype.Text
+	BlobSize pgtype.Int8
+	Version  int64
+	// Soft-delete для синхронизации удалений между устройствами.
+	Deleted   bool
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 // Пользователи GophKeeper
 type User struct {
 	ID    pgtype.UUID
@@ -24,4 +46,20 @@ type User struct {
 	TotpEnabled bool
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+// Ваулты(Папки) пользователя.
+type Vault struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+	// VaultKey, обёрнутый (AEAD) под MasterKey пользователя.
+	WrappedVaultKey []byte
+	// Имя папки, зашифрованное AEAD под VaultKey. Сервер имени не знает.
+	EncName []byte
+	// Версия папки для дельта-синхронизации. Инкрементируется при изменениях.
+	Version int64
+	// Soft-delete: строка не удаляется физически, чтобы удаление можно было синхронизировать между устройствами.
+	Deleted   bool
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }

@@ -18,3 +18,6 @@ packages:
       UserRepository:
       TokenIssuer:
       TxManager:
+  github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault:
+    interfaces:
+      VaultRepository:

@@ -1,0 +1,3 @@
+./gophkeeper-client -s localhost:9090
+
+echo '{"server_addr": "localhost:9090"}' > ~/Library/Application\ Support/gophkeeper/config.json

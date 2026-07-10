@@ -10,10 +10,11 @@ type UseCase struct {
 	cipher contracts.Cipher
 	tokens contracts.TokenStore
 	sess   *session.Session
+	local  contracts.LocalStorage
 }
 
-func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session) *UseCase {
-	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess}
+func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session, local contracts.LocalStorage) *UseCase {
+	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess, local: local}
 }
 
 type DecryptedVault struct {

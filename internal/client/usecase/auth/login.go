@@ -30,7 +30,7 @@ func (u *UseCase) Login(ctx context.Context, login string, loginCredential []byt
 
 	u.encKDFSalt = res.EncKDFSalt
 	u.encKDFParams = res.EncKDFParams
-	return nil
+	return u.persistEncryption(ctx)
 }
 
 // Unlock выводит MasterKey локально по параметрам KDF, полученным при Login.

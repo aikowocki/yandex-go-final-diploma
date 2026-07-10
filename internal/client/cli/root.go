@@ -10,6 +10,8 @@ type CLI struct {
 	SetupEncryption SetupEncryptionCmd `cmd:"" name:"setup-encryption" help:"Set up encryption for the current account."`
 	Vault           VaultCmd           `cmd:"" help:"Manage vaults."`
 	Secret          SecretCmd          `cmd:"" help:"Manage secrets."`
+	Sync            SyncCmd            `cmd:"" help:"Sync local cache with the server and flush the offline outbox."`
+	Outbox          OutboxCmd          `cmd:"" help:"Inspect the offline change queue (outbox)."`
 	Ping            PingCmd            `cmd:"" help:"Check server connectivity."`
 	Version         VersionCmd         `cmd:"" help:"Print client version."`
 }

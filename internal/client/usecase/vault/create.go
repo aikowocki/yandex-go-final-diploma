@@ -3,6 +3,8 @@ package vault
 import (
 	"context"
 	"fmt"
+
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
 
 // Create создаёт папку: генерирует VaultKey, оборачивает его MasterKey'ом, шифрует имя,
@@ -43,5 +45,15 @@ func (u *UseCase) Create(ctx context.Context, name string) (string, error) {
 	}
 
 	u.sess.OpenVault(id, vaultKey)
+
+	// Кешируем новую папку локально, чтобы последующие secret-команды могли открыть его оффлайн.
+	if err := u.local.UpsertVault(ctx, contracts.LocalVault{
+		ID:              id,
+		WrappedVaultKey: wrapped,
+		EncName:         encName,
+		Version:         1,
+	}); err != nil {
+		return "", fmt.Errorf("cache vault: %w", err)
+	}
 	return id, nil
 }

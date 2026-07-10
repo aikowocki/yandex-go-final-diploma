@@ -7,15 +7,18 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
 )
 
-// ListRow возвращает расшифрованные Tier 2a-строки секретов ваулта. enc_payload не запрашивается
-// и не расшифровывается (пароль показывается только по GetPayload).
+// ListRow возвращает расшифрованные Tier 2a-строки секретов папки из ЛОКАЛЬНОГО кеша
+// (без сетевых вызовов). Наполнение кеша — задача sync engine. enc_payload здесь не трогается.
 func (u *UseCase) ListRow(ctx context.Context, vaultID string) ([]DecryptedRow, error) {
-	vaultKey, token, err := u.vaultContext(vaultID)
+	if vaultID == "" {
+		return nil, ErrEmptyVaultID
+	}
+	vaultKey, err := u.vaultKey(vaultID)
 	if err != nil {
 		return nil, err
 	}
 
-	items, err := u.server.ListSecretRows(ctx, token, vaultID)
+	items, err := u.local.ListSecretsByVault(ctx, vaultID)
 	if err != nil {
 		return nil, err
 	}

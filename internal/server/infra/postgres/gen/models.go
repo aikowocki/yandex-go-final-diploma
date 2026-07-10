@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-// Секреты внутри ваултов.
+// Секреты внутри папки.
 type Secret struct {
 	ID      pgtype.UUID
 	VaultID pgtype.UUID

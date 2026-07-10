@@ -18,7 +18,7 @@ CREATE INDEX ON secrets (vault_id, type);
 CREATE INDEX ON secrets (vault_id, version);
 
 COMMENT ON TABLE secrets IS
-    'Секреты внутри ваултов.';
+    'Секреты внутри папки.';
 
 COMMENT ON COLUMN secrets.type IS
     'Тип секрета (ОТКРЫТО, не шифруется): 1=login_password, 2=text, 3=binary, 4=bank_card, 5=totp.';

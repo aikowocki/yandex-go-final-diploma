@@ -11,16 +11,26 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts/mocks"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/localstore"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/vault"
 	"github.com/aikowocki/yandex-go-final-diploma/pkg/crypto"
 )
 
-// Реальный cipher (cryptoimpl) + mock ServerClient + mock TokenStore + реальная сессия.
+// Реальный cipher (cryptoimpl) + mock ServerClient + mock TokenStore + реальная сессия + in-memory localstore.
 func newVaultUC(t *testing.T, server contracts.ServerClient, sess *session.Session) *vault.UseCase {
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "tok"}, nil).Maybe()
-	return vault.New(server, cryptoimpl.Crypto{}, store, sess)
+	return vault.New(server, cryptoimpl.Crypto{}, store, sess, newMemStore(t))
+}
+
+// newMemStore открывает in-memory localstore и закрывает его по завершении теста.
+func newMemStore(t *testing.T) *localstore.Store {
+	t.Helper()
+	ls, err := localstore.Open("", false)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ls.Close() })
+	return ls
 }
 
 func unlockedSession(t *testing.T) *session.Session {
@@ -48,7 +58,7 @@ func TestCreate_Success_EncryptsAndOpensSession(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "vault-1", id)
 
-	// Ваулт открыт в сессии.
+	// Папка открыт в сессии.
 	vk, ok := sess.VaultKey("vault-1")
 	require.True(t, ok)
 
@@ -79,7 +89,7 @@ func TestList_DecryptsAndOpensSession(t *testing.T) {
 	sess := unlockedSession(t)
 	mk, _ := sess.MasterKey()
 
-	// Готовим серверный ответ: ваулт, зашифрованный тем же MasterKey.
+	// Готовим серверный ответ: папка, зашифрованная тем же MasterKey.
 	c := cryptoimpl.Crypto{}
 	vaultKey, err := c.GenerateVaultKey()
 	require.NoError(t, err)

@@ -25,3 +25,14 @@ func ListVaultsResponse(vaults []vault.Tier1) *pb.ListVaultsResponse {
 	}
 	return &pb.ListVaultsResponse{Vaults: items}
 }
+
+func CheckFreshnessResponse(versions []vault.Version) *pb.CheckFreshnessResponse {
+	items := make([]*pb.VaultVersion, 0, len(versions))
+	for _, v := range versions {
+		items = append(items, &pb.VaultVersion{
+			VaultId: v.ID,
+			Version: v.Version,
+		})
+	}
+	return &pb.CheckFreshnessResponse{Vaults: items}
+}

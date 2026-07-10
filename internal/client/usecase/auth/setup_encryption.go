@@ -46,7 +46,7 @@ func (u *UseCase) SetupEncryption(ctx context.Context, passphrase []byte) error 
 	u.sess.SetMasterKey(masterKey)
 	u.encKDFSalt = salt
 	u.encKDFParams = paramsJSON
-	return nil
+	return u.persistEncryption(ctx)
 }
 
 // deriveMasterKey — общая цепочка Argon2id → HKDF для SetupEncryption и Unlock.

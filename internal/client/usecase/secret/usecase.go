@@ -10,10 +10,11 @@ type UseCase struct {
 	cipher contracts.Cipher
 	tokens contracts.TokenStore
 	sess   *session.Session
+	local  contracts.LocalStorage
 }
 
-func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session) *UseCase {
-	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess}
+func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session, local contracts.LocalStorage) *UseCase {
+	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess, local: local}
 }
 
 func (u *UseCase) accessToken() (string, error) {
@@ -24,7 +25,7 @@ func (u *UseCase) accessToken() (string, error) {
 	return tokens.AccessToken, nil
 }
 
-// vaultKey возвращает VaultKey открытого ваулта из сессии либо ErrVaultLocked.
+// vaultKey возвращает VaultKey открытой папки из сессии либо ErrVaultLocked.
 func (u *UseCase) vaultKey(vaultID string) ([]byte, error) {
 	vk, ok := u.sess.VaultKey(vaultID)
 	if !ok {

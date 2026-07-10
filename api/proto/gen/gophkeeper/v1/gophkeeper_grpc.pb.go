@@ -277,8 +277,9 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	VaultService_CreateVault_FullMethodName = "/gophkeeper.v1.VaultService/CreateVault"
-	VaultService_ListVaults_FullMethodName  = "/gophkeeper.v1.VaultService/ListVaults"
+	VaultService_CreateVault_FullMethodName    = "/gophkeeper.v1.VaultService/CreateVault"
+	VaultService_ListVaults_FullMethodName     = "/gophkeeper.v1.VaultService/ListVaults"
+	VaultService_CheckFreshness_FullMethodName = "/gophkeeper.v1.VaultService/CheckFreshness"
 )
 
 // VaultServiceClient is the client API for VaultService service.
@@ -289,6 +290,7 @@ const (
 type VaultServiceClient interface {
 	CreateVault(ctx context.Context, in *CreateVaultRequest, opts ...grpc.CallOption) (*CreateVaultResponse, error)
 	ListVaults(ctx context.Context, in *ListVaultsRequest, opts ...grpc.CallOption) (*ListVaultsResponse, error)
+	CheckFreshness(ctx context.Context, in *CheckFreshnessRequest, opts ...grpc.CallOption) (*CheckFreshnessResponse, error)
 }
 
 type vaultServiceClient struct {
@@ -319,6 +321,16 @@ func (c *vaultServiceClient) ListVaults(ctx context.Context, in *ListVaultsReque
 	return out, nil
 }
 
+func (c *vaultServiceClient) CheckFreshness(ctx context.Context, in *CheckFreshnessRequest, opts ...grpc.CallOption) (*CheckFreshnessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckFreshnessResponse)
+	err := c.cc.Invoke(ctx, VaultService_CheckFreshness_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VaultServiceServer is the server API for VaultService service.
 // All implementations must embed UnimplementedVaultServiceServer
 // for forward compatibility.
@@ -327,6 +339,7 @@ func (c *vaultServiceClient) ListVaults(ctx context.Context, in *ListVaultsReque
 type VaultServiceServer interface {
 	CreateVault(context.Context, *CreateVaultRequest) (*CreateVaultResponse, error)
 	ListVaults(context.Context, *ListVaultsRequest) (*ListVaultsResponse, error)
+	CheckFreshness(context.Context, *CheckFreshnessRequest) (*CheckFreshnessResponse, error)
 	mustEmbedUnimplementedVaultServiceServer()
 }
 
@@ -342,6 +355,9 @@ func (UnimplementedVaultServiceServer) CreateVault(context.Context, *CreateVault
 }
 func (UnimplementedVaultServiceServer) ListVaults(context.Context, *ListVaultsRequest) (*ListVaultsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListVaults not implemented")
+}
+func (UnimplementedVaultServiceServer) CheckFreshness(context.Context, *CheckFreshnessRequest) (*CheckFreshnessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckFreshness not implemented")
 }
 func (UnimplementedVaultServiceServer) mustEmbedUnimplementedVaultServiceServer() {}
 func (UnimplementedVaultServiceServer) testEmbeddedByValue()                      {}
@@ -400,6 +416,24 @@ func _VaultService_ListVaults_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VaultService_CheckFreshness_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckFreshnessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultServiceServer).CheckFreshness(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultService_CheckFreshness_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultServiceServer).CheckFreshness(ctx, req.(*CheckFreshnessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VaultService_ServiceDesc is the grpc.ServiceDesc for VaultService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -414,6 +448,10 @@ var VaultService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListVaults",
 			Handler:    _VaultService_ListVaults_Handler,
+		},
+		{
+			MethodName: "CheckFreshness",
+			Handler:    _VaultService_CheckFreshness_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

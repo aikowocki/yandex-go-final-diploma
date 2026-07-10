@@ -22,6 +22,65 @@ func (_m *MockServerClient) EXPECT() *MockServerClient_Expecter {
 	return &MockServerClient_Expecter{mock: &_m.Mock}
 }
 
+// CheckFreshness provides a mock function with given fields: ctx, accessToken
+func (_m *MockServerClient) CheckFreshness(ctx context.Context, accessToken string) ([]contracts.VaultVersion, error) {
+	ret := _m.Called(ctx, accessToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CheckFreshness")
+	}
+
+	var r0 []contracts.VaultVersion
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]contracts.VaultVersion, error)); ok {
+		return rf(ctx, accessToken)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []contracts.VaultVersion); ok {
+		r0 = rf(ctx, accessToken)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]contracts.VaultVersion)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, accessToken)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_CheckFreshness_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CheckFreshness'
+type MockServerClient_CheckFreshness_Call struct {
+	*mock.Call
+}
+
+// CheckFreshness is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+func (_e *MockServerClient_Expecter) CheckFreshness(ctx interface{}, accessToken interface{}) *MockServerClient_CheckFreshness_Call {
+	return &MockServerClient_CheckFreshness_Call{Call: _e.mock.On("CheckFreshness", ctx, accessToken)}
+}
+
+func (_c *MockServerClient_CheckFreshness_Call) Run(run func(ctx context.Context, accessToken string)) *MockServerClient_CheckFreshness_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_CheckFreshness_Call) Return(_a0 []contracts.VaultVersion, _a1 error) *MockServerClient_CheckFreshness_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_CheckFreshness_Call) RunAndReturn(run func(context.Context, string) ([]contracts.VaultVersion, error)) *MockServerClient_CheckFreshness_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateSecret provides a mock function with given fields: ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload
 func (_m *MockServerClient) CreateSecret(ctx context.Context, accessToken string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte) (string, error) {
 	ret := _m.Called(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)

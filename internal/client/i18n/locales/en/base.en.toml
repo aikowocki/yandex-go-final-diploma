@@ -51,3 +51,7 @@ label_uri = "URL"
 label_tags = "Tags"
 label_note = "Note"
 label_password = "Password"
+
+sync_done = "Sync complete."
+outbox_empty = "Offline queue is empty."
+sync_offline = "Server is unavailable — working offline, will sync later."

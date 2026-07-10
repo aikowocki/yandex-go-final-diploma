@@ -20,6 +20,12 @@ type VaultItem struct {
 	Version         int64
 }
 
+// VaultVersion — лёгкая проекция {id, version} для sync (CheckFreshness).
+type VaultVersion struct {
+	ID      string
+	Version int64
+}
+
 type SecretRowItem struct {
 	ID      string
 	Type    int32
@@ -48,6 +54,7 @@ type ServerClient interface {
 
 	CreateVault(ctx context.Context, accessToken string, wrappedVaultKey, encName []byte) (vaultID string, err error)
 	ListVaults(ctx context.Context, accessToken string) ([]VaultItem, error)
+	CheckFreshness(ctx context.Context, accessToken string) ([]VaultVersion, error)
 
 	CreateSecret(ctx context.Context, accessToken, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) (secretID string, err error)
 	ListSecretRows(ctx context.Context, accessToken, vaultID string) ([]SecretRowItem, error)

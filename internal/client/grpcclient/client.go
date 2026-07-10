@@ -145,6 +145,22 @@ func (c *Client) ListVaults(ctx context.Context, accessToken string) ([]contract
 	return items, nil
 }
 
+func (c *Client) CheckFreshness(ctx context.Context, accessToken string) ([]contracts.VaultVersion, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.vault.CheckFreshness(ctx, &pb.CheckFreshnessRequest{})
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	items := make([]contracts.VaultVersion, 0, len(resp.GetVaults()))
+	for _, v := range resp.GetVaults() {
+		items = append(items, contracts.VaultVersion{
+			ID:      v.GetVaultId(),
+			Version: v.GetVersion(),
+		})
+	}
+	return items, nil
+}
+
 // --- SecretService ---
 
 func (c *Client) CreateSecret(ctx context.Context, accessToken, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) (string, error) {

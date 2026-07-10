@@ -8,6 +8,7 @@ import (
 	clienti18n "github.com/aikowocki/yandex-go-final-diploma/internal/client/i18n"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
 	secretuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/secret"
+	syncuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/sync"
 	vaultuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/vault"
 )
 
@@ -73,13 +74,20 @@ func (c *SecretAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret 
 }
 
 type SecretListCmd struct {
-	Vault string `arg:"" help:"Vault name."`
+	Vault   string `arg:"" help:"Vault name."`
+	Refresh bool   `help:"Sync with the server before listing." short:"r"`
 }
 
-func (c *SecretListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
+func (c *SecretListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, sync *syncuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
 		return err
+	}
+	// По умолчанию список читается из локального кеша (без сети). --refresh форсирует синк.
+	if c.Refresh {
+		if err := runSync(ctx, sync, l); err != nil {
+			return err
+		}
 	}
 	vaultID, err := openVaultByName(ctx, vault, c.Vault)
 	if err != nil {

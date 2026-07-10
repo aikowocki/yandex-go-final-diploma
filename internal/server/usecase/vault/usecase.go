@@ -9,6 +9,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, v domain.Vault) (domain.Vault, error)
 	ListByUser(ctx context.Context, userID string) ([]domain.Vault, error)
+	CheckFreshness(ctx context.Context, userID string) ([]Version, error)
 }
 
 type UseCase struct {

@@ -14,13 +14,23 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts/mocks"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/localstore"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
 	"github.com/aikowocki/yandex-go-final-diploma/pkg/crypto"
 )
 
 func newUseCase(server contracts.ServerClient, store contracts.TokenStore) *authuc.UseCase {
-	return authuc.New(server, cryptoimpl.Crypto{}, store, session.New())
+	return authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), memStore())
+}
+
+// memStore открывает in-memory localstore для тестов (kv-кеш KDF-параметров).
+func memStore() *localstore.Store {
+	ls, err := localstore.Open("", false)
+	if err != nil {
+		panic(err)
+	}
+	return ls
 }
 
 // testParams — облегчённые параметры Argon2id для юнит-тестов: KDF гоняется по-настоящему, но быстро.
@@ -195,6 +205,43 @@ func TestUnlock_Deterministic(t *testing.T) {
 	require.NotEmpty(t, k1)
 	assert.Equal(t, k1, k2, "same passphrase must yield same master key")
 	assert.NotEqual(t, k1, k3, "different passphrase must yield different master key")
+}
+
+// TestOfflineUnlock_FromCachedKDF: Login кеширует KDF-параметры локально; новый процесс
+// (свежая сессия, тот же localstore) может поднять их из кеша и разблокироваться без сети.
+func TestOfflineUnlock_FromCachedKDF(t *testing.T) {
+	local := memStore()
+	res := contracts.LoginResult{
+		Tokens:       contracts.Tokens{AccessToken: "a", RefreshToken: "r"},
+		EncKDFSalt:   bytes.Repeat([]byte{9}, 16),
+		EncKDFParams: encParamsJSON(t),
+	}
+
+	// Онлайн-логин — параметры KDF оседают в localstore.
+	server := mocks.NewMockServerClient(t)
+	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	store := mocks.NewMockTokenStore(t)
+	store.EXPECT().Save(res.Tokens).Return(nil)
+
+	online := authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), local)
+	require.NoError(t, online.Login(context.Background(), "alice", []byte("pw")))
+	require.NoError(t, online.Unlock(context.Background(), []byte("correct-horse")))
+	wantKey := online.MasterKeyForTest()
+
+	// Новый процесс: сеть недоступна, но кеш KDF на месте → офлайн-разблокировка.
+	offline := authuc.New(mocks.NewMockServerClient(t), cryptoimpl.Crypto{}, mocks.NewMockTokenStore(t), session.New(), local)
+	assert.False(t, offline.EncryptionConfigured())
+	require.NoError(t, offline.LoadCachedEncryption(context.Background()))
+	assert.True(t, offline.EncryptionConfigured())
+	require.NoError(t, offline.Unlock(context.Background(), []byte("correct-horse")))
+
+	assert.Equal(t, wantKey, offline.MasterKeyForTest(), "offline unlock must derive the same master key")
+}
+
+func TestLoadCachedEncryption_Empty(t *testing.T) {
+	uc := newUseCase(mocks.NewMockServerClient(t), mocks.NewMockTokenStore(t))
+	err := uc.LoadCachedEncryption(context.Background())
+	require.ErrorIs(t, err, authuc.ErrEncryptionNotSetup)
 }
 
 // --- error-ветки: ошибки сервера/хранилища должны пробрасываться ---

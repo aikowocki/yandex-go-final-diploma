@@ -113,3 +113,26 @@ func TestListVaults_RepoError(t *testing.T) {
 	_, err := vault.New(repo).ListVaults(context.Background(), "user-1")
 	assert.ErrorIs(t, err, wantErr)
 }
+
+func TestCheckFreshness_Success(t *testing.T) {
+	t.Parallel()
+
+	repo := mocks.NewMockRepository(t)
+	repo.EXPECT().CheckFreshness(mock.Anything, "user-1").Return([]vault.Version{
+		{ID: "v1", Version: 1},
+		{ID: "v2", Version: 4},
+	}, nil)
+
+	got, err := vault.New(repo).CheckFreshness(context.Background(), "user-1")
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, vault.Version{ID: "v2", Version: 4}, got[1])
+}
+
+func TestCheckFreshness_EmptyUserID(t *testing.T) {
+	t.Parallel()
+
+	repo := mocks.NewMockRepository(t)
+	_, err := vault.New(repo).CheckFreshness(context.Background(), "")
+	require.ErrorIs(t, err, vault.ErrEmptyUserID)
+}

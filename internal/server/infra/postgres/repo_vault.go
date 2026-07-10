@@ -68,6 +68,27 @@ func (r *VaultRepo) IsOwner(ctx context.Context, vaultID, userID string) (bool, 
 	return owns, nil
 }
 
+func (r *VaultRepo) CheckFreshness(ctx context.Context, userID string) ([]vault.Version, error) {
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("check freshness: invalid user id: %w", err)
+	}
+
+	rows, err := r.q(ctx).CheckVaultFreshness(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("check freshness: %w", err)
+	}
+
+	versions := make([]vault.Version, 0, len(rows))
+	for _, row := range rows {
+		versions = append(versions, vault.Version{
+			ID:      uuidToString(row.ID),
+			Version: row.Version,
+		})
+	}
+	return versions, nil
+}
+
 func (r *VaultRepo) ListByUser(ctx context.Context, userID string) ([]domain.Vault, error) {
 	uid, err := parseUUID(userID)
 	if err != nil {

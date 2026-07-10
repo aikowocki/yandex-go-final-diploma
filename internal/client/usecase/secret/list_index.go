@@ -14,7 +14,7 @@ type DecryptedIndex struct {
 	Index   secretcontent.LoginPasswordIndex
 }
 
-// ListIndex возвращает расшифрованные Tier 2b-индексы секретов ваулта.
+// ListIndex возвращает расшифрованные Tier 2b-индексы секретов папки.
 func (u *UseCase) ListIndex(ctx context.Context, vaultID string) ([]DecryptedIndex, error) {
 	vaultKey, token, err := u.vaultContext(vaultID)
 	if err != nil {

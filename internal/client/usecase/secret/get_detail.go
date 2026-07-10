@@ -17,7 +17,7 @@ type Detail struct {
 
 // GetDetail собирает полную карточку: payload (Tier 3, авторитетная проверка существования),
 // затем обогащает полями row (Tier 2a) и index (Tier 2b). Все три тира расшифровываются
-// VaultKey'ом открытого ваулта. Именно здесь payload тянется с сервера (лениво, при открытии карточки).
+// VaultKey'ом открытой папки. Именно здесь payload тянется с сервера (лениво, при открытии карточки).
 func (u *UseCase) GetDetail(ctx context.Context, vaultID, secretID string) (Detail, error) {
 	// GetPayload — авторитетный источник существования/владения (сервер отдаёт ErrSecretNotFound).
 	payload, err := u.GetPayload(ctx, vaultID, secretID)

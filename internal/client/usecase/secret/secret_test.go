@@ -12,18 +12,32 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts/mocks"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/localstore"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/secret"
 	"github.com/aikowocki/yandex-go-final-diploma/pkg/crypto"
 )
 
 func newSecretUC(t *testing.T, server contracts.ServerClient, sess *session.Session) *secret.UseCase {
-	store := mocks.NewMockTokenStore(t)
-	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "tok"}, nil).Maybe()
-	return secret.New(server, cryptoimpl.Crypto{}, store, sess)
+	return newSecretUCStore(t, server, sess, newMemStore(t))
 }
 
-// openVaultSession возвращает сессию с открытым ваултом vaultID и его VaultKey.
+func newSecretUCStore(t *testing.T, server contracts.ServerClient, sess *session.Session, local *localstore.Store) *secret.UseCase {
+	store := mocks.NewMockTokenStore(t)
+	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "tok"}, nil).Maybe()
+	return secret.New(server, cryptoimpl.Crypto{}, store, sess, local)
+}
+
+// newMemStore открывает in-memory localstore и закрывает его по завершении теста.
+func newMemStore(t *testing.T) *localstore.Store {
+	t.Helper()
+	ls, err := localstore.Open("", false)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = ls.Close() })
+	return ls
+}
+
+// openVaultSession возвращает сессию с открытой папкой vaultID и его VaultKey.
 func openVaultSession(t *testing.T, vaultID string) (*session.Session, []byte) {
 	t.Helper()
 	sess := session.New()
@@ -83,7 +97,7 @@ func TestCreateLoginPassword_Validation(t *testing.T) {
 	require.ErrorIs(t, err, secret.ErrEmptyTitle)
 }
 
-func TestListRow_Decrypts(t *testing.T) {
+func TestListRow_ReadsFromLocalStore(t *testing.T) {
 	sess, vaultKey := openVaultSession(t, "vault-1")
 
 	c := cryptoimpl.Crypto{}
@@ -92,12 +106,14 @@ func TestListRow_Decrypts(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	server := mocks.NewMockServerClient(t)
-	server.EXPECT().ListSecretRows(mock.Anything, "tok", "vault-1").Return([]contracts.SecretRowItem{
-		{ID: "s1", Type: 1, Version: 1, EncRow: encRow},
-	}, nil)
+	// Наполняем локальный кеш напрямую — ListRow не должен ходить в сеть.
+	local := newMemStore(t)
+	require.NoError(t, local.UpsertSecretRow(context.Background(), contracts.LocalSecret{
+		ID: "s1", VaultID: "vault-1", Type: 1, EncRow: encRow, Version: 1,
+	}))
 
-	got, err := newSecretUC(t, server, sess).ListRow(context.Background(), "vault-1")
+	server := mocks.NewMockServerClient(t) // ListSecretRows не должен вызываться
+	got, err := newSecretUCStore(t, server, sess, local).ListRow(context.Background(), "vault-1")
 	require.NoError(t, err)
 	require.Len(t, got, 1)
 	assert.Equal(t, "GitHub", got[0].Row.Title)

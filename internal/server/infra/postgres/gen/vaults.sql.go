@@ -11,6 +11,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkVaultFreshness = `-- name: CheckVaultFreshness :many
+SELECT id, version
+FROM vaults
+WHERE user_id = $1 AND NOT deleted
+ORDER BY id
+`
+
+type CheckVaultFreshnessRow struct {
+	ID      pgtype.UUID
+	Version int64
+}
+
+// CheckFreshness — лёгкий запрос версий всех папок пользователя (для клиентского sync).
+func (q *Queries) CheckVaultFreshness(ctx context.Context, userID pgtype.UUID) ([]CheckVaultFreshnessRow, error) {
+	rows, err := q.db.Query(ctx, checkVaultFreshness, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CheckVaultFreshnessRow
+	for rows.Next() {
+		var i CheckVaultFreshnessRow
+		if err := rows.Scan(&i.ID, &i.Version); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createVault = `-- name: CreateVault :one
 INSERT INTO vaults (user_id, wrapped_vault_key, enc_name)
 VALUES ($1, $2, $3)
@@ -83,7 +116,7 @@ type ListVaultsByUserRow struct {
 	Version         int64
 }
 
-// Tier 1: список ваултов пользователя (id + обёрнутый ключ + зашифрованное имя + версия).
+// Tier 1: список папок пользователя (id + обёрнутый ключ + зашифрованное имя + версия).
 func (q *Queries) ListVaultsByUser(ctx context.Context, userID pgtype.UUID) ([]ListVaultsByUserRow, error) {
 	rows, err := q.db.Query(ctx, listVaultsByUser, userID)
 	if err != nil {

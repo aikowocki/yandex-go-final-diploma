@@ -43,6 +43,8 @@ func main() {
 		container.Auth,
 		container.Vault,
 		container.Secret,
+		container.Sync,
+		container.Local,
 		container.GRPC,
 		container.Localizer,
 		&cli.BuildInfo{Version: version, Date: formatBuildDate(buildDate)},

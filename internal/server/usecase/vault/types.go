@@ -13,3 +13,9 @@ type Tier1 struct {
 	EncName         []byte
 	Version         int64
 }
+
+// Version — пара {id, version} для клиентского sync (CheckFreshness).
+type Version struct {
+	ID      string
+	Version int64
+}

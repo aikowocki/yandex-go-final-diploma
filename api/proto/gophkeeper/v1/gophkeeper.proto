@@ -17,6 +17,7 @@ service AuthService {
 service VaultService {
   rpc CreateVault(CreateVaultRequest) returns (CreateVaultResponse);
   rpc ListVaults(ListVaultsRequest) returns (ListVaultsResponse);
+  rpc CheckFreshness(CheckFreshnessRequest) returns (CheckFreshnessResponse); // версии всех папок для sync
 }
 
 // SecretService — секреты по тирам.
@@ -59,6 +60,17 @@ message Vault {
 
 message ListVaultsResponse {
   repeated Vault vaults = 1;
+}
+
+message CheckFreshnessRequest {}
+
+message VaultVersion {
+  string vault_id = 1;
+  int64 version = 2;
+}
+
+message CheckFreshnessResponse {
+  repeated VaultVersion vaults = 1;
 }
 
 message CreateSecretRequest {

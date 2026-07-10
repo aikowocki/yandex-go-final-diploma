@@ -37,6 +37,19 @@ func (s *Server) ListVaults(ctx context.Context, _ *pb.ListVaultsRequest) (*pb.L
 	return mapper.ListVaultsResponse(vaults), nil
 }
 
+func (s *Server) CheckFreshness(ctx context.Context, _ *pb.CheckFreshnessRequest) (*pb.CheckFreshnessResponse, error) {
+	userID, ok := interceptor.UserIDFromContext(ctx)
+	if !ok {
+		return nil, errNoUser()
+	}
+
+	versions, err := s.vault.CheckFreshness(ctx, userID)
+	if err != nil {
+		return nil, mapVaultErr(err)
+	}
+	return mapper.CheckFreshnessResponse(versions), nil
+}
+
 // errNoUser — защитный ответ, если userID не оказался в контексте.
 func errNoUser() error {
 	return status.Error(codes.Unauthenticated, "missing authenticated user")

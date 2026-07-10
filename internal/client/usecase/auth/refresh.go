@@ -25,5 +25,5 @@ func (u *UseCase) Refresh(ctx context.Context) error {
 
 	u.encKDFSalt = res.EncKDFSalt
 	u.encKDFParams = res.EncKDFParams
-	return nil
+	return u.persistEncryption(ctx)
 }

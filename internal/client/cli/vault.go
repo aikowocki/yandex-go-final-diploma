@@ -61,13 +61,30 @@ func (c *VaultListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *clie
 	return nil
 }
 
-// openVaultByName открывает папку (unwrap в сессию через List) и резолвит id по имени.
+// openVaultByName открывает папку (unwrap VaultKey в сессию) и резолвит id по имени.
+// Сначала пробует ЛОКАЛЬНЫЙ кеш (работает оффлайн); если папка не найдена локально —
+// делает фолбэк на сервер (заодно наполняя кеш). Так secret-команды работают без сети,
+// если кеш уже прогрет предыдущим login/sync/create.
 func openVaultByName(ctx context.Context, vault *vaultuc.UseCase, name string) (string, error) {
-	vaults, err := vault.List(ctx)
+	local, err := vault.ListLocal(ctx)
 	if err != nil {
 		return "", err
 	}
+	id, err := resolveVaultID(local, name)
+	if err == nil || !errors.Is(err, errVaultNotFound) {
+		return id, err
+	}
 
+	// Локально не нашли — пробуем сервер (может быть, кеш ещё не прогрет).
+	remote, rerr := vault.List(ctx)
+	if rerr != nil {
+		return "", err // возвращаем исходный "not found", сеть недоступна
+	}
+	return resolveVaultID(remote, name)
+}
+
+// resolveVaultID ищет единственную папку по имени среди расшифрованных.
+func resolveVaultID(vaults []vaultuc.DecryptedVault, name string) (string, error) {
 	var id string
 	matches := 0
 	for _, v := range vaults {

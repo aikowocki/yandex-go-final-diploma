@@ -2,7 +2,7 @@ package secret
 
 import "context"
 
-// ListRow возвращает Tier 2a-проекцию секретов ваулта (строки списка, без payload).
+// ListRow возвращает Tier 2a-проекцию секретов папки (строки списка, без payload).
 func (u *UseCase) ListRow(ctx context.Context, userID, vaultID string) ([]Row, error) {
 	if userID == "" {
 		return nil, ErrEmptyUserID

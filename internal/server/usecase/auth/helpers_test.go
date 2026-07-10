@@ -14,6 +14,6 @@ func (passthroughTx) Do(ctx context.Context, fn func(ctx context.Context) error)
 	return fn(ctx)
 }
 
-func newUseCase(users *mocks.MockUserRepository, tokens *mocks.MockTokenIssuer) *auth.UseCase {
+func newUseCase(users *mocks.MockRepository, tokens *mocks.MockTokenIssuer) *auth.UseCase {
 	return auth.New(users, tokens, passthroughTx{})
 }

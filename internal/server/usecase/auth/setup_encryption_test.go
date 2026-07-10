@@ -17,7 +17,7 @@ import (
 func TestSetupEncryption_Success(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
 	users.EXPECT().
 		UpdateEncKDF(mock.Anything, "user-1", []byte("salt"), []byte(`{"version":1}`)).
@@ -35,7 +35,7 @@ func TestSetupEncryption_Success(t *testing.T) {
 func TestSetupEncryption_UserNotFound(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "ghost").Return(domain.User{}, auth.ErrUserNotFound)
 
 	err := newUseCase(users, mocks.NewMockTokenIssuer(t)).SetupEncryption(context.Background(), auth.SetupEncryptionParams{
@@ -49,7 +49,7 @@ func TestSetupEncryption_UpdateError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("connection refused")
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
 	users.EXPECT().UpdateEncKDF(mock.Anything, "user-1", mock.Anything, mock.Anything).Return(wantErr)
 

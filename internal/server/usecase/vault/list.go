@@ -3,7 +3,7 @@ package vault
 import "context"
 
 // ListVaults возвращает список папок пользователя (для разворачивания VaultKey и показа имени).
-func (u *UseCase) ListVaults(ctx context.Context, userID string) ([]VaultTier1, error) {
+func (u *UseCase) ListVaults(ctx context.Context, userID string) ([]Tier1, error) {
 	if userID == "" {
 		return nil, ErrEmptyUserID
 	}
@@ -13,9 +13,9 @@ func (u *UseCase) ListVaults(ctx context.Context, userID string) ([]VaultTier1, 
 		return nil, err
 	}
 
-	result := make([]VaultTier1, 0, len(vaults))
+	result := make([]Tier1, 0, len(vaults))
 	for _, v := range vaults {
-		result = append(result, VaultTier1{
+		result = append(result, Tier1{
 			ID:              v.ID,
 			WrappedVaultKey: v.WrappedVaultKey,
 			EncName:         v.EncName,

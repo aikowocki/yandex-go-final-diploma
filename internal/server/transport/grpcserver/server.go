@@ -10,24 +10,40 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/interceptor"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
 
-// Server оборачивает gRPC-сервер.
+// Server оборачивает gRPC-сервер
 type Server struct {
 	pb.UnimplementedAuthServiceServer
+	pb.UnimplementedVaultServiceServer
+	pb.UnimplementedSecretServiceServer
+
 	grpcServer *grpc.Server
 	auth       *auth.UseCase
+	vault      *vault.UseCase
+	secret     *secret.UseCase
 }
 
 // New создаёт новый gRPC-сервер с зарегистрированными сервисами.
-func New(authUseCase *auth.UseCase, tokenVerifier interceptor.TokenVerifier) *Server {
+func New(
+	authUseCase *auth.UseCase,
+	vaultUseCase *vault.UseCase,
+	secretUseCase *secret.UseCase,
+	tokenVerifier interceptor.TokenVerifier,
+) *Server {
 	s := &Server{
-		auth: authUseCase,
+		auth:   authUseCase,
+		vault:  vaultUseCase,
+		secret: secretUseCase,
 		grpcServer: grpc.NewServer(
 			grpc.UnaryInterceptor(interceptor.Auth(tokenVerifier)),
 		),
 	}
 	pb.RegisterAuthServiceServer(s.grpcServer, s)
+	pb.RegisterVaultServiceServer(s.grpcServer, s)
+	pb.RegisterSecretServiceServer(s.grpcServer, s)
 	return s
 }
 

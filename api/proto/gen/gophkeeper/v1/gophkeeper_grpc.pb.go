@@ -275,3 +275,367 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "gophkeeper/v1/gophkeeper.proto",
 }
+
+const (
+	VaultService_CreateVault_FullMethodName = "/gophkeeper.v1.VaultService/CreateVault"
+	VaultService_ListVaults_FullMethodName  = "/gophkeeper.v1.VaultService/ListVaults"
+)
+
+// VaultServiceClient is the client API for VaultService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// VaultService — CRUD папок
+type VaultServiceClient interface {
+	CreateVault(ctx context.Context, in *CreateVaultRequest, opts ...grpc.CallOption) (*CreateVaultResponse, error)
+	ListVaults(ctx context.Context, in *ListVaultsRequest, opts ...grpc.CallOption) (*ListVaultsResponse, error)
+}
+
+type vaultServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewVaultServiceClient(cc grpc.ClientConnInterface) VaultServiceClient {
+	return &vaultServiceClient{cc}
+}
+
+func (c *vaultServiceClient) CreateVault(ctx context.Context, in *CreateVaultRequest, opts ...grpc.CallOption) (*CreateVaultResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateVaultResponse)
+	err := c.cc.Invoke(ctx, VaultService_CreateVault_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vaultServiceClient) ListVaults(ctx context.Context, in *ListVaultsRequest, opts ...grpc.CallOption) (*ListVaultsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListVaultsResponse)
+	err := c.cc.Invoke(ctx, VaultService_ListVaults_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// VaultServiceServer is the server API for VaultService service.
+// All implementations must embed UnimplementedVaultServiceServer
+// for forward compatibility.
+//
+// VaultService — CRUD папок
+type VaultServiceServer interface {
+	CreateVault(context.Context, *CreateVaultRequest) (*CreateVaultResponse, error)
+	ListVaults(context.Context, *ListVaultsRequest) (*ListVaultsResponse, error)
+	mustEmbedUnimplementedVaultServiceServer()
+}
+
+// UnimplementedVaultServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedVaultServiceServer struct{}
+
+func (UnimplementedVaultServiceServer) CreateVault(context.Context, *CreateVaultRequest) (*CreateVaultResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateVault not implemented")
+}
+func (UnimplementedVaultServiceServer) ListVaults(context.Context, *ListVaultsRequest) (*ListVaultsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVaults not implemented")
+}
+func (UnimplementedVaultServiceServer) mustEmbedUnimplementedVaultServiceServer() {}
+func (UnimplementedVaultServiceServer) testEmbeddedByValue()                      {}
+
+// UnsafeVaultServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to VaultServiceServer will
+// result in compilation errors.
+type UnsafeVaultServiceServer interface {
+	mustEmbedUnimplementedVaultServiceServer()
+}
+
+func RegisterVaultServiceServer(s grpc.ServiceRegistrar, srv VaultServiceServer) {
+	// If the following call panics, it indicates UnimplementedVaultServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&VaultService_ServiceDesc, srv)
+}
+
+func _VaultService_CreateVault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateVaultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultServiceServer).CreateVault(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultService_CreateVault_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultServiceServer).CreateVault(ctx, req.(*CreateVaultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VaultService_ListVaults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVaultsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VaultServiceServer).ListVaults(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VaultService_ListVaults_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VaultServiceServer).ListVaults(ctx, req.(*ListVaultsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// VaultService_ServiceDesc is the grpc.ServiceDesc for VaultService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var VaultService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gophkeeper.v1.VaultService",
+	HandlerType: (*VaultServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateVault",
+			Handler:    _VaultService_CreateVault_Handler,
+		},
+		{
+			MethodName: "ListVaults",
+			Handler:    _VaultService_ListVaults_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "gophkeeper/v1/gophkeeper.proto",
+}
+
+const (
+	SecretService_CreateSecret_FullMethodName = "/gophkeeper.v1.SecretService/CreateSecret"
+	SecretService_ListRow_FullMethodName      = "/gophkeeper.v1.SecretService/ListRow"
+	SecretService_ListIndex_FullMethodName    = "/gophkeeper.v1.SecretService/ListIndex"
+	SecretService_GetPayload_FullMethodName   = "/gophkeeper.v1.SecretService/GetPayload"
+)
+
+// SecretServiceClient is the client API for SecretService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// SecretService — секреты по тирам.
+type SecretServiceClient interface {
+	CreateSecret(ctx context.Context, in *CreateSecretRequest, opts ...grpc.CallOption) (*CreateSecretResponse, error)
+	ListRow(ctx context.Context, in *ListRowRequest, opts ...grpc.CallOption) (*ListRowResponse, error)
+	ListIndex(ctx context.Context, in *ListIndexRequest, opts ...grpc.CallOption) (*ListIndexResponse, error)
+	GetPayload(ctx context.Context, in *GetPayloadRequest, opts ...grpc.CallOption) (*GetPayloadResponse, error)
+}
+
+type secretServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewSecretServiceClient(cc grpc.ClientConnInterface) SecretServiceClient {
+	return &secretServiceClient{cc}
+}
+
+func (c *secretServiceClient) CreateSecret(ctx context.Context, in *CreateSecretRequest, opts ...grpc.CallOption) (*CreateSecretResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateSecretResponse)
+	err := c.cc.Invoke(ctx, SecretService_CreateSecret_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretServiceClient) ListRow(ctx context.Context, in *ListRowRequest, opts ...grpc.CallOption) (*ListRowResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRowResponse)
+	err := c.cc.Invoke(ctx, SecretService_ListRow_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretServiceClient) ListIndex(ctx context.Context, in *ListIndexRequest, opts ...grpc.CallOption) (*ListIndexResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListIndexResponse)
+	err := c.cc.Invoke(ctx, SecretService_ListIndex_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretServiceClient) GetPayload(ctx context.Context, in *GetPayloadRequest, opts ...grpc.CallOption) (*GetPayloadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPayloadResponse)
+	err := c.cc.Invoke(ctx, SecretService_GetPayload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SecretServiceServer is the server API for SecretService service.
+// All implementations must embed UnimplementedSecretServiceServer
+// for forward compatibility.
+//
+// SecretService — секреты по тирам.
+type SecretServiceServer interface {
+	CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error)
+	ListRow(context.Context, *ListRowRequest) (*ListRowResponse, error)
+	ListIndex(context.Context, *ListIndexRequest) (*ListIndexResponse, error)
+	GetPayload(context.Context, *GetPayloadRequest) (*GetPayloadResponse, error)
+	mustEmbedUnimplementedSecretServiceServer()
+}
+
+// UnimplementedSecretServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedSecretServiceServer struct{}
+
+func (UnimplementedSecretServiceServer) CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSecret not implemented")
+}
+func (UnimplementedSecretServiceServer) ListRow(context.Context, *ListRowRequest) (*ListRowResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListRow not implemented")
+}
+func (UnimplementedSecretServiceServer) ListIndex(context.Context, *ListIndexRequest) (*ListIndexResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListIndex not implemented")
+}
+func (UnimplementedSecretServiceServer) GetPayload(context.Context, *GetPayloadRequest) (*GetPayloadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPayload not implemented")
+}
+func (UnimplementedSecretServiceServer) mustEmbedUnimplementedSecretServiceServer() {}
+func (UnimplementedSecretServiceServer) testEmbeddedByValue()                       {}
+
+// UnsafeSecretServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SecretServiceServer will
+// result in compilation errors.
+type UnsafeSecretServiceServer interface {
+	mustEmbedUnimplementedSecretServiceServer()
+}
+
+func RegisterSecretServiceServer(s grpc.ServiceRegistrar, srv SecretServiceServer) {
+	// If the following call panics, it indicates UnimplementedSecretServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&SecretService_ServiceDesc, srv)
+}
+
+func _SecretService_CreateSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSecretRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).CreateSecret(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_CreateSecret_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).CreateSecret(ctx, req.(*CreateSecretRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretService_ListRow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).ListRow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_ListRow_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).ListRow(ctx, req.(*ListRowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretService_ListIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListIndexRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).ListIndex(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_ListIndex_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).ListIndex(ctx, req.(*ListIndexRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretService_GetPayload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPayloadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).GetPayload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_GetPayload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).GetPayload(ctx, req.(*GetPayloadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SecretService_ServiceDesc is the grpc.ServiceDesc for SecretService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SecretService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gophkeeper.v1.SecretService",
+	HandlerType: (*SecretServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateSecret",
+			Handler:    _SecretService_CreateSecret_Handler,
+		},
+		{
+			MethodName: "ListRow",
+			Handler:    _SecretService_ListRow_Handler,
+		},
+		{
+			MethodName: "ListIndex",
+			Handler:    _SecretService_ListIndex_Handler,
+		},
+		{
+			MethodName: "GetPayload",
+			Handler:    _SecretService_GetPayload_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "gophkeeper/v1/gophkeeper.proto",
+}

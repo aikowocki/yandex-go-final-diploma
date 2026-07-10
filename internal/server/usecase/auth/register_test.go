@@ -17,7 +17,7 @@ import (
 func TestRegister_Success(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().Create(mock.Anything, mock.Anything).
 		RunAndReturn(func(_ context.Context, u domain.User) (domain.User, error) {
 			assert.Equal(t, "alice", u.Login)
@@ -46,12 +46,12 @@ func TestRegister_Errors(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		setup   func(users *mocks.MockUserRepository, tokens *mocks.MockTokenIssuer)
+		setup   func(users *mocks.MockRepository, tokens *mocks.MockTokenIssuer)
 		wantErr error
 	}{
 		{
 			name: "login taken",
-			setup: func(users *mocks.MockUserRepository, _ *mocks.MockTokenIssuer) {
+			setup: func(users *mocks.MockRepository, _ *mocks.MockTokenIssuer) {
 				// Issue не настраиваем — при ошибке Create он вызываться не должен.
 				users.EXPECT().Create(mock.Anything, mock.Anything).Return(domain.User{}, auth.ErrLoginTaken)
 			},
@@ -59,14 +59,14 @@ func TestRegister_Errors(t *testing.T) {
 		},
 		{
 			name: "repository error",
-			setup: func(users *mocks.MockUserRepository, _ *mocks.MockTokenIssuer) {
+			setup: func(users *mocks.MockRepository, _ *mocks.MockTokenIssuer) {
 				users.EXPECT().Create(mock.Anything, mock.Anything).Return(domain.User{}, repoErr)
 			},
 			wantErr: repoErr,
 		},
 		{
 			name: "token issue error",
-			setup: func(users *mocks.MockUserRepository, tokens *mocks.MockTokenIssuer) {
+			setup: func(users *mocks.MockRepository, tokens *mocks.MockTokenIssuer) {
 				users.EXPECT().Create(mock.Anything, mock.Anything).Return(domain.User{ID: "user-1"}, nil)
 				tokens.EXPECT().Issue("user-1").Return("", "", signErr)
 			},
@@ -78,7 +78,7 @@ func TestRegister_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			users := mocks.NewMockUserRepository(t)
+			users := mocks.NewMockRepository(t)
 			tokens := mocks.NewMockTokenIssuer(t)
 			tt.setup(users, tokens)
 
@@ -98,7 +98,7 @@ func TestRegister_DifferentLoginCredentialsProduceDifferentHashes(t *testing.T) 
 	t.Parallel()
 
 	var capturedHashes []string
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().Create(mock.Anything, mock.Anything).
 		RunAndReturn(func(_ context.Context, u domain.User) (domain.User, error) {
 			capturedHashes = append(capturedHashes, u.AuthHash)

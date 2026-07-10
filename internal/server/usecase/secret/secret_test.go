@@ -14,8 +14,8 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret/mocks"
 )
 
-func validCreateParams() secret.CreateSecretParams {
-	return secret.CreateSecretParams{
+func validCreateParams() secret.CreateParams {
+	return secret.CreateParams{
 		UserID:     "user-1",
 		VaultID:    "vault-1",
 		Type:       domain.SecretTypeLoginPassword,
@@ -31,7 +31,7 @@ func TestCreateSecret_Success(t *testing.T) {
 	vaults := mocks.NewMockVaultOwnership(t)
 	vaults.EXPECT().IsOwner(mock.Anything, "vault-1", "user-1").Return(true, nil)
 
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 	secrets.EXPECT().Create(mock.Anything, mock.Anything).
 		RunAndReturn(func(_ context.Context, s domain.Secret) (domain.Secret, error) {
 			assert.Equal(t, "vault-1", s.VaultID)
@@ -52,7 +52,7 @@ func TestCreateSecret_NotOwner(t *testing.T) {
 	vaults.EXPECT().IsOwner(mock.Anything, "vault-1", "user-1").Return(false, nil)
 
 	// Секрет создаваться не должен — репозиторий не вызывается.
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 
 	_, err := secret.New(secrets, vaults).CreateSecret(context.Background(), validCreateParams())
 	require.ErrorIs(t, err, secret.ErrVaultNotFound)
@@ -63,13 +63,13 @@ func TestCreateSecret_Validation(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		mutate  func(*secret.CreateSecretParams)
+		mutate  func(*secret.CreateParams)
 		wantErr error
 	}{
-		{"empty user id", func(p *secret.CreateSecretParams) { p.UserID = "" }, secret.ErrEmptyUserID},
-		{"empty vault id", func(p *secret.CreateSecretParams) { p.VaultID = "" }, secret.ErrEmptyVaultID},
-		{"empty enc row", func(p *secret.CreateSecretParams) { p.EncRow = nil }, secret.ErrEmptyEncRow},
-		{"empty enc index", func(p *secret.CreateSecretParams) { p.EncIndex = nil }, secret.ErrEmptyEncIndex},
+		{"empty user id", func(p *secret.CreateParams) { p.UserID = "" }, secret.ErrEmptyUserID},
+		{"empty vault id", func(p *secret.CreateParams) { p.VaultID = "" }, secret.ErrEmptyVaultID},
+		{"empty enc row", func(p *secret.CreateParams) { p.EncRow = nil }, secret.ErrEmptyEncRow},
+		{"empty enc index", func(p *secret.CreateParams) { p.EncIndex = nil }, secret.ErrEmptyEncIndex},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -77,7 +77,7 @@ func TestCreateSecret_Validation(t *testing.T) {
 
 			// Ни проверка владения, ни создание не должны вызываться при провале валидации.
 			vaults := mocks.NewMockVaultOwnership(t)
-			secrets := mocks.NewMockSecretRepository(t)
+			secrets := mocks.NewMockRepository(t)
 			params := validCreateParams()
 			tt.mutate(&params)
 
@@ -93,7 +93,7 @@ func TestCreateSecret_RepoError(t *testing.T) {
 	wantErr := errors.New("insert failed")
 	vaults := mocks.NewMockVaultOwnership(t)
 	vaults.EXPECT().IsOwner(mock.Anything, "vault-1", "user-1").Return(true, nil)
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 	secrets.EXPECT().Create(mock.Anything, mock.Anything).Return(domain.Secret{}, wantErr)
 
 	_, err := secret.New(secrets, vaults).CreateSecret(context.Background(), validCreateParams())
@@ -103,7 +103,7 @@ func TestCreateSecret_RepoError(t *testing.T) {
 func TestListRow_Success(t *testing.T) {
 	t.Parallel()
 
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 	secrets.EXPECT().ListRow(mock.Anything, "vault-1", "user-1").Return([]domain.Secret{
 		{ID: "s1", Type: domain.SecretTypeLoginPassword, Version: 1, EncRow: []byte("r1")},
 	}, nil)
@@ -117,7 +117,7 @@ func TestListRow_Success(t *testing.T) {
 func TestListRow_Validation(t *testing.T) {
 	t.Parallel()
 
-	uc := secret.New(mocks.NewMockSecretRepository(t), mocks.NewMockVaultOwnership(t))
+	uc := secret.New(mocks.NewMockRepository(t), mocks.NewMockVaultOwnership(t))
 
 	_, err := uc.ListRow(context.Background(), "", "vault-1")
 	require.ErrorIs(t, err, secret.ErrEmptyUserID)
@@ -129,7 +129,7 @@ func TestListRow_Validation(t *testing.T) {
 func TestGetPayload_Success(t *testing.T) {
 	t.Parallel()
 
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 	secrets.EXPECT().GetPayload(mock.Anything, "secret-1", "user-1").Return(domain.Secret{
 		ID: "secret-1", Type: domain.SecretTypeLoginPassword, Version: 2, EncPayload: []byte("p"),
 	}, nil)
@@ -142,7 +142,7 @@ func TestGetPayload_Success(t *testing.T) {
 func TestGetPayload_NotFound(t *testing.T) {
 	t.Parallel()
 
-	secrets := mocks.NewMockSecretRepository(t)
+	secrets := mocks.NewMockRepository(t)
 	secrets.EXPECT().GetPayload(mock.Anything, "secret-x", "user-1").Return(domain.Secret{}, secret.ErrSecretNotFound)
 
 	_, err := secret.New(secrets, mocks.NewMockVaultOwnership(t)).GetPayload(context.Background(), "user-1", "secret-x")
@@ -152,7 +152,7 @@ func TestGetPayload_NotFound(t *testing.T) {
 func TestGetPayload_Validation(t *testing.T) {
 	t.Parallel()
 
-	uc := secret.New(mocks.NewMockSecretRepository(t), mocks.NewMockVaultOwnership(t))
+	uc := secret.New(mocks.NewMockRepository(t), mocks.NewMockVaultOwnership(t))
 
 	_, err := uc.GetPayload(context.Background(), "", "secret-1")
 	require.ErrorIs(t, err, secret.ErrEmptyUserID)

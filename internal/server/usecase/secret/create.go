@@ -7,7 +7,7 @@ import (
 )
 
 // CreateSecret создаёт секрет в папке после проверки, что принадлежит пользователю.
-func (u *UseCase) CreateSecret(ctx context.Context, params CreateSecretParams) (string, error) {
+func (u *UseCase) CreateSecret(ctx context.Context, params CreateParams) (string, error) {
 	if params.UserID == "" {
 		return "", ErrEmptyUserID
 	}

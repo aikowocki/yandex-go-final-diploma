@@ -16,7 +16,7 @@ import (
 func TestRefreshToken_Success(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").
 		Return(domain.User{ID: "user-1", EncKDFSalt: []byte("salt"), EncKDFParams: []byte(`{"version":1}`)}, nil)
 
@@ -40,7 +40,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 	tokens := mocks.NewMockTokenIssuer(t)
 	tokens.EXPECT().Verify("bad-token").Return("", assert.AnError)
 
-	_, err := newUseCase(mocks.NewMockUserRepository(t), tokens).RefreshToken(context.Background(), auth.RefreshParams{
+	_, err := newUseCase(mocks.NewMockRepository(t), tokens).RefreshToken(context.Background(), auth.RefreshParams{
 		RefreshToken: "bad-token",
 	})
 
@@ -50,7 +50,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 func TestRefreshToken_UserNotFound(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{}, auth.ErrUserNotFound)
 
 	tokens := mocks.NewMockTokenIssuer(t)
@@ -66,7 +66,7 @@ func TestRefreshToken_UserNotFound(t *testing.T) {
 func TestRefreshToken_RefreshIssueError(t *testing.T) {
 	t.Parallel()
 
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
 
 	tokens := mocks.NewMockTokenIssuer(t)

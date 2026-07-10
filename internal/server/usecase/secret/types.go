@@ -2,7 +2,7 @@ package secret
 
 import "github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 
-type CreateSecretParams struct {
+type CreateParams struct {
 	UserID     string
 	VaultID    string
 	Type       domain.SecretType

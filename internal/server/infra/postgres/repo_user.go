@@ -12,7 +12,7 @@ import (
 // constraintUsersLogin — имя unique-ограничения на users.login
 const constraintUsersLogin = "users_login_key"
 
-// UserRepo реализует auth.UserRepository поверх sqlc-сгенерированных запросов.
+// UserRepo реализует auth.Repository поверх sqlc-сгенерированных запросов.
 // Транслирует ошибки pgx/pgconn в доменные sentinel-ошибки usecase-слоя — наружу
 type UserRepo struct {
 	db *DB

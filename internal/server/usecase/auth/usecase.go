@@ -6,7 +6,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 )
 
-type UserRepository interface {
+type Repository interface {
 	Create(ctx context.Context, u domain.User) (domain.User, error)
 	GetByLogin(ctx context.Context, login string) (domain.User, error)
 	GetByID(ctx context.Context, id string) (domain.User, error)
@@ -29,11 +29,11 @@ type TxManager interface {
 }
 
 type UseCase struct {
-	users  UserRepository
+	users  Repository
 	tokens TokenIssuer
 	tx     TxManager
 }
 
-func New(users UserRepository, tokens TokenIssuer, tx TxManager) *UseCase {
+func New(users Repository, tokens TokenIssuer, tx TxManager) *UseCase {
 	return &UseCase{users: users, tokens: tokens, tx: tx}
 }

@@ -1,13 +1,13 @@
 package vault
 
-type CreateVaultParams struct {
+type CreateParams struct {
 	UserID          string
 	WrappedVaultKey []byte
 	EncName         []byte
 }
 
-// VaultTier1 — проекция папки для списка (Tier 1)
-type VaultTier1 struct {
+// Tier1 — проекция папки для списка (Tier 1)
+type Tier1 struct {
 	ID              string
 	WrappedVaultKey []byte
 	EncName         []byte

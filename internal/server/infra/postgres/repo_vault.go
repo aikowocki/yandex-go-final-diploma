@@ -10,13 +10,13 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
 
-// VaultRepo реализует vault.VaultRepository поверх sqlc-запросов.
+// VaultRepo реализует vault.Repository поверх sqlc-запросов.
 type VaultRepo struct {
 	db *DB
 }
 
 var (
-	_ vault.VaultRepository = (*VaultRepo)(nil)
+	_ vault.Repository      = (*VaultRepo)(nil)
 	_ secret.VaultOwnership = (*VaultRepo)(nil)
 )
 

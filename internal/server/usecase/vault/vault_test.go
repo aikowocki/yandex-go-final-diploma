@@ -14,8 +14,8 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault/mocks"
 )
 
-func validCreateParams() vault.CreateVaultParams {
-	return vault.CreateVaultParams{
+func validCreateParams() vault.CreateParams {
+	return vault.CreateParams{
 		UserID:          "user-1",
 		WrappedVaultKey: []byte("wrapped-key"),
 		EncName:         []byte("enc-name"),
@@ -25,7 +25,7 @@ func validCreateParams() vault.CreateVaultParams {
 func TestCreateVault_Success(t *testing.T) {
 	t.Parallel()
 
-	repo := mocks.NewMockVaultRepository(t)
+	repo := mocks.NewMockRepository(t)
 	repo.EXPECT().
 		Create(mock.Anything, mock.Anything).
 		RunAndReturn(func(_ context.Context, v domain.Vault) (domain.Vault, error) {
@@ -46,19 +46,19 @@ func TestCreateVault_Validation(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		mutate  func(*vault.CreateVaultParams)
+		mutate  func(*vault.CreateParams)
 		wantErr error
 	}{
-		{"empty user id", func(p *vault.CreateVaultParams) { p.UserID = "" }, vault.ErrEmptyUserID},
-		{"empty vault key", func(p *vault.CreateVaultParams) { p.WrappedVaultKey = nil }, vault.ErrEmptyVaultKey},
-		{"empty enc name", func(p *vault.CreateVaultParams) { p.EncName = nil }, vault.ErrEmptyEncName},
+		{"empty user id", func(p *vault.CreateParams) { p.UserID = "" }, vault.ErrEmptyUserID},
+		{"empty vault key", func(p *vault.CreateParams) { p.WrappedVaultKey = nil }, vault.ErrEmptyVaultKey},
+		{"empty enc name", func(p *vault.CreateParams) { p.EncName = nil }, vault.ErrEmptyEncName},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			// Репозиторий не должен вызываться при провале валидации.
-			repo := mocks.NewMockVaultRepository(t)
+			repo := mocks.NewMockRepository(t)
 			params := validCreateParams()
 			tt.mutate(&params)
 
@@ -72,7 +72,7 @@ func TestCreateVault_RepoError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("insert failed")
-	repo := mocks.NewMockVaultRepository(t)
+	repo := mocks.NewMockRepository(t)
 	repo.EXPECT().Create(mock.Anything, mock.Anything).Return(domain.Vault{}, wantErr)
 
 	_, err := vault.New(repo).CreateVault(context.Background(), validCreateParams())
@@ -82,7 +82,7 @@ func TestCreateVault_RepoError(t *testing.T) {
 func TestListVaults_Success(t *testing.T) {
 	t.Parallel()
 
-	repo := mocks.NewMockVaultRepository(t)
+	repo := mocks.NewMockRepository(t)
 	repo.EXPECT().ListByUser(mock.Anything, "user-1").Return([]domain.Vault{
 		{ID: "v1", WrappedVaultKey: []byte("k1"), EncName: []byte("n1"), Version: 1},
 		{ID: "v2", WrappedVaultKey: []byte("k2"), EncName: []byte("n2"), Version: 3},
@@ -91,14 +91,14 @@ func TestListVaults_Success(t *testing.T) {
 	got, err := vault.New(repo).ListVaults(context.Background(), "user-1")
 	require.NoError(t, err)
 	require.Len(t, got, 2)
-	assert.Equal(t, vault.VaultTier1{ID: "v1", WrappedVaultKey: []byte("k1"), EncName: []byte("n1"), Version: 1}, got[0])
-	assert.Equal(t, vault.VaultTier1{ID: "v2", WrappedVaultKey: []byte("k2"), EncName: []byte("n2"), Version: 3}, got[1])
+	assert.Equal(t, vault.Tier1{ID: "v1", WrappedVaultKey: []byte("k1"), EncName: []byte("n1"), Version: 1}, got[0])
+	assert.Equal(t, vault.Tier1{ID: "v2", WrappedVaultKey: []byte("k2"), EncName: []byte("n2"), Version: 3}, got[1])
 }
 
 func TestListVaults_EmptyUserID(t *testing.T) {
 	t.Parallel()
 
-	repo := mocks.NewMockVaultRepository(t)
+	repo := mocks.NewMockRepository(t)
 	_, err := vault.New(repo).ListVaults(context.Background(), "")
 	require.ErrorIs(t, err, vault.ErrEmptyUserID)
 }
@@ -107,7 +107,7 @@ func TestListVaults_RepoError(t *testing.T) {
 	t.Parallel()
 
 	wantErr := errors.New("query failed")
-	repo := mocks.NewMockVaultRepository(t)
+	repo := mocks.NewMockRepository(t)
 	repo.EXPECT().ListByUser(mock.Anything, "user-1").Return(nil, wantErr)
 
 	_, err := vault.New(repo).ListVaults(context.Background(), "user-1")

@@ -26,7 +26,7 @@ func TestLogin_Success(t *testing.T) {
 	t.Parallel()
 
 	hash := mustHash(t, "correct-password")
-	users := mocks.NewMockUserRepository(t)
+	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByLogin(mock.Anything, "alice").Return(domain.User{
 		ID:           "user-1",
 		Login:        "alice",
@@ -59,7 +59,7 @@ func TestLogin_Errors(t *testing.T) {
 	tests := []struct {
 		name string
 		// setup настраивает репозиторий на конкретный сценарий.
-		setup func(users *mocks.MockUserRepository)
+		setup func(users *mocks.MockRepository)
 		// credential — пароль, с которым пытаемся войти.
 		credential string
 		// wantIs — ошибка, которой результат ДОЛЖЕН соответствовать (errors.Is). Может быть nil.
@@ -70,7 +70,7 @@ func TestLogin_Errors(t *testing.T) {
 		{
 			// user enumeration: "не найден" неотличим от "неверный пароль".
 			name: "user not found is masked as invalid credentials",
-			setup: func(users *mocks.MockUserRepository) {
+			setup: func(users *mocks.MockRepository) {
 				users.EXPECT().GetByLogin(mock.Anything, "ghost").Return(domain.User{}, auth.ErrUserNotFound)
 			},
 			credential: "whatever",
@@ -79,7 +79,7 @@ func TestLogin_Errors(t *testing.T) {
 		},
 		{
 			name: "wrong password returns invalid credentials",
-			setup: func(users *mocks.MockUserRepository) {
+			setup: func(users *mocks.MockRepository) {
 				users.EXPECT().GetByLogin(mock.Anything, "ghost").Return(domain.User{ID: "user-1", AuthHash: validHash}, nil)
 			},
 			credential: "wrong-password",
@@ -88,7 +88,7 @@ func TestLogin_Errors(t *testing.T) {
 		{
 			// Инфраструктурные ошибки не маскируются под "неверные данные".
 			name: "repository error is not disguised",
-			setup: func(users *mocks.MockUserRepository) {
+			setup: func(users *mocks.MockRepository) {
 				users.EXPECT().GetByLogin(mock.Anything, "ghost").Return(domain.User{}, repoErr)
 			},
 			credential: "whatever",
@@ -98,7 +98,7 @@ func TestLogin_Errors(t *testing.T) {
 		{
 			// Битый хеш в БД — внутренняя ошибка, а не "неверный пароль".
 			name: "malformed stored hash is internal error",
-			setup: func(users *mocks.MockUserRepository) {
+			setup: func(users *mocks.MockRepository) {
 				users.EXPECT().GetByLogin(mock.Anything, "ghost").Return(domain.User{ID: "user-1", AuthHash: "not-a-phc-hash"}, nil)
 			},
 			credential: "whatever",
@@ -110,7 +110,7 @@ func TestLogin_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			users := mocks.NewMockUserRepository(t)
+			users := mocks.NewMockRepository(t)
 			tt.setup(users)
 
 			_, err := newUseCase(users, mocks.NewMockTokenIssuer(t)).Login(context.Background(), auth.LoginParams{

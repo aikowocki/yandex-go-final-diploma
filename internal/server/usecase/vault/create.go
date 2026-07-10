@@ -7,7 +7,7 @@ import (
 )
 
 // CreateVault создаёт папку для пользователя.
-func (u *UseCase) CreateVault(ctx context.Context, params CreateVaultParams) (string, error) {
+func (u *UseCase) CreateVault(ctx context.Context, params CreateParams) (string, error) {
 	if params.UserID == "" {
 		return "", ErrEmptyUserID
 	}

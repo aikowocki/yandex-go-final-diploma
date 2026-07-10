@@ -7,7 +7,45 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
+
+// mapVaultErr преобразует ошибки vault-usecase в gRPC status-коды.
+func mapVaultErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, vault.ErrEmptyUserID),
+		errors.Is(err, vault.ErrEmptyVaultKey),
+		errors.Is(err, vault.ErrEmptyEncName):
+		return status.Error(codes.InvalidArgument, "invalid vault request")
+	default:
+		return status.Error(codes.Internal, "internal error")
+	}
+}
+
+// mapSecretErr преобразует ошибки secret-usecase в gRPC status-коды.
+func mapSecretErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch {
+	case errors.Is(err, secret.ErrVaultNotFound):
+		return status.Error(codes.NotFound, "vault not found")
+	case errors.Is(err, secret.ErrSecretNotFound):
+		return status.Error(codes.NotFound, "secret not found")
+	case errors.Is(err, secret.ErrEmptyUserID),
+		errors.Is(err, secret.ErrEmptyVaultID),
+		errors.Is(err, secret.ErrEmptySecretID),
+		errors.Is(err, secret.ErrEmptyEncRow),
+		errors.Is(err, secret.ErrEmptyEncIndex):
+		return status.Error(codes.InvalidArgument, "invalid secret request")
+	default:
+		return status.Error(codes.Internal, "internal error")
+	}
+}
 
 // mapAuthErr преобразует ошибки auth в соответствующие gRPC status-коды.
 func mapAuthErr(err error) error {

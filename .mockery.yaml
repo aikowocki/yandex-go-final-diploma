@@ -15,13 +15,13 @@ packages:
       Cipher:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth:
     interfaces:
-      UserRepository:
+      Repository:
       TokenIssuer:
       TxManager:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault:
     interfaces:
-      VaultRepository:
+      Repository:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret:
     interfaces:
-      SecretRepository:
+      Repository:
       VaultOwnership:

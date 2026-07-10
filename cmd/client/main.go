@@ -41,6 +41,8 @@ func main() {
 
 	kctx.Bind(
 		container.Auth,
+		container.Vault,
+		container.Secret,
 		container.GRPC,
 		container.Localizer,
 		&cli.BuildInfo{Version: version, Date: formatBuildDate(buildDate)},

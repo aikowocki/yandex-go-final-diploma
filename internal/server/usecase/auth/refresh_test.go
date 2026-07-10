@@ -21,8 +21,8 @@ func TestRefreshToken_Success(t *testing.T) {
 		Return(domain.User{ID: "user-1", EncKDFSalt: []byte("salt"), EncKDFParams: []byte(`{"version":1}`)}, nil)
 
 	tokens := mocks.NewMockTokenIssuer(t)
-	tokens.EXPECT().Verify("old-refresh").Return("user-1", nil)
-	tokens.EXPECT().Refresh("old-refresh").Return("new-access", "new-refresh", nil)
+	tokens.EXPECT().VerifyRefresh("old-refresh").Return("user-1", nil)
+	tokens.EXPECT().Issue("user-1").Return("new-access", "new-refresh", nil)
 
 	res, err := newUseCase(users, tokens).RefreshToken(context.Background(), auth.RefreshParams{
 		RefreshToken: "old-refresh",
@@ -38,7 +38,7 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 	t.Parallel()
 
 	tokens := mocks.NewMockTokenIssuer(t)
-	tokens.EXPECT().Verify("bad-token").Return("", assert.AnError)
+	tokens.EXPECT().VerifyRefresh("bad-token").Return("", assert.AnError)
 
 	_, err := newUseCase(mocks.NewMockRepository(t), tokens).RefreshToken(context.Background(), auth.RefreshParams{
 		RefreshToken: "bad-token",
@@ -54,7 +54,7 @@ func TestRefreshToken_UserNotFound(t *testing.T) {
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{}, auth.ErrUserNotFound)
 
 	tokens := mocks.NewMockTokenIssuer(t)
-	tokens.EXPECT().Verify("old-refresh").Return("user-1", nil)
+	tokens.EXPECT().VerifyRefresh("old-refresh").Return("user-1", nil)
 
 	_, err := newUseCase(users, tokens).RefreshToken(context.Background(), auth.RefreshParams{
 		RefreshToken: "old-refresh",
@@ -70,12 +70,15 @@ func TestRefreshToken_RefreshIssueError(t *testing.T) {
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
 
 	tokens := mocks.NewMockTokenIssuer(t)
-	tokens.EXPECT().Verify("old-refresh").Return("user-1", nil)
-	tokens.EXPECT().Refresh("old-refresh").Return("", "", assert.AnError)
+	tokens.EXPECT().VerifyRefresh("old-refresh").Return("user-1", nil)
+	tokens.EXPECT().Issue("user-1").Return("", "", assert.AnError)
 
 	_, err := newUseCase(users, tokens).RefreshToken(context.Background(), auth.RefreshParams{
 		RefreshToken: "old-refresh",
 	})
 
-	assert.ErrorIs(t, err, auth.ErrInvalidRefreshToken)
+	// Сбой выпуска токенов — внутренняя ошибка, а не "невалидный refresh-токен":
+	// refresh уже прошёл проверку, проблема в подписи новой пары.
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, auth.ErrInvalidRefreshToken)
 }

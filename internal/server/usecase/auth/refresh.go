@@ -8,7 +8,7 @@ import (
 
 // RefreshToken обновляет пару access+refresh JWT по действующему refresh-токену.
 func (u *UseCase) RefreshToken(ctx context.Context, params RefreshParams) (AuthResult, error) {
-	userID, err := u.tokens.Verify(params.RefreshToken)
+	userID, err := u.tokens.VerifyRefresh(params.RefreshToken)
 	if err != nil {
 		return AuthResult{}, ErrInvalidRefreshToken
 	}
@@ -21,9 +21,10 @@ func (u *UseCase) RefreshToken(ctx context.Context, params RefreshParams) (AuthR
 		return AuthResult{}, fmt.Errorf("get user by id: %w", err)
 	}
 
-	access, refresh, err := u.tokens.Refresh(params.RefreshToken)
+	// userID уже получен из refresh-токена — выпускаем новую пару напрямую (без повторного парсинга).
+	access, refresh, err := u.tokens.Issue(userID)
 	if err != nil {
-		return AuthResult{}, ErrInvalidRefreshToken
+		return AuthResult{}, fmt.Errorf("issue tokens: %w", err)
 	}
 
 	return AuthResult{

@@ -18,7 +18,7 @@ type Repository interface {
 type TokenIssuer interface {
 	Issue(userID string) (access, refresh string, err error)
 	Verify(token string) (userID string, err error)
-	Refresh(refreshToken string) (access, refresh string, err error)
+	VerifyRefresh(refreshToken string) (userID string, err error)
 }
 
 // TxManager выполняет fn как одну атомарную единицу работы в хранилище.

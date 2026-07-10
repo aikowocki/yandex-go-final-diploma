@@ -62,6 +62,11 @@ func (t *TokenIssuer) Verify(token string) (userID string, err error) {
 	return t.parse(token, tokenTypeAccess)
 }
 
+// VerifyRefresh проверяет refresh-токен и возвращает userID.
+func (t *TokenIssuer) VerifyRefresh(token string) (userID string, err error) {
+	return t.parse(token, tokenTypeRefresh)
+}
+
 // Refresh проверяет refresh-токен и выпускает новую пару.
 func (t *TokenIssuer) Refresh(refreshToken string) (access, refresh string, err error) {
 	userID, err := t.parse(refreshToken, tokenTypeRefresh)

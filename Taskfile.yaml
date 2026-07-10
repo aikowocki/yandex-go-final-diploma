@@ -65,6 +65,13 @@ tasks:
     cmds:
       - docker compose up --build -d
 
+  docker-rebuild:
+    desc: Пересобрать образ сервера без кеша и перезапустить
+    dir: deployments
+    cmds:
+      - docker compose build --no-cache server
+      - docker compose up -d --force-recreate server
+
   docker-down:
     desc: Остановить сервер
     dir: deployments

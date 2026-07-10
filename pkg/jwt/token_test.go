@@ -125,3 +125,26 @@ func TestIssue_DifferentUsersGetDifferentSubjects(t *testing.T) {
 	assert.Equal(t, "user-a", userA)
 	assert.Equal(t, "user-b", userB)
 }
+
+func TestVerifyRefresh_AcceptsRefresh(t *testing.T) {
+	t.Parallel()
+
+	issuer := newIssuer()
+	_, refresh, err := issuer.Issue("user-123")
+	require.NoError(t, err)
+
+	userID, err := issuer.VerifyRefresh(refresh)
+	require.NoError(t, err)
+	assert.Equal(t, "user-123", userID)
+}
+
+func TestVerifyRefresh_RejectsAccessToken(t *testing.T) {
+	t.Parallel()
+
+	issuer := newIssuer()
+	access, _, err := issuer.Issue("user-123")
+	require.NoError(t, err)
+
+	_, err = issuer.VerifyRefresh(access)
+	assert.ErrorIs(t, err, jwt.ErrWrongType)
+}

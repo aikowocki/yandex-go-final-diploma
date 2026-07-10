@@ -16,6 +16,7 @@ type SecretCmd struct {
 	Add  SecretAddCmd  `cmd:"" help:"Add a login/password secret to a vault."`
 	List SecretListCmd `cmd:"" help:"List secrets of a vault (without revealing passwords)."`
 	Get  SecretGetCmd  `cmd:"" help:"Reveal a secret's password."`
+	Show SecretShowCmd `cmd:"" help:"Show a secret's full card (all fields, incl. password)."`
 }
 
 type SecretAddCmd struct {
@@ -120,6 +121,43 @@ func (c *SecretGetCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret 
 		return err
 	}
 	fmt.Println(payload.Payload.Password)
+	return nil
+}
+
+type SecretShowCmd struct {
+	Vault string `arg:"" help:"Vault name."`
+	ID    string `arg:"" help:"Secret id (from 'secret list')."`
+}
+
+func (c *SecretShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
+	ctx := context.Background()
+	if err := ensureUnlocked(ctx, auth, l); err != nil {
+		return err
+	}
+	vaultID, err := openVaultByName(ctx, vault, c.Vault)
+	if err != nil {
+		return err
+	}
+
+	d, err := secret.GetDetail(ctx, vaultID, c.ID)
+	if err != nil {
+		return err
+	}
+
+	// Полная карточка: row (Tier 2a) + index (Tier 2b) + payload (Tier 3).
+	fmt.Printf("%s: %s\n", l.T("label_title"), d.Row.Title)
+	fmt.Printf("%s: %s\n", l.T("label_username"), d.Row.Username)
+	fmt.Printf("%s: %s\n", l.T("label_uri"), d.Row.URI)
+	if len(d.Row.Tags) > 0 {
+		fmt.Printf("%s: %s\n", l.T("label_tags"), strings.Join(d.Row.Tags, ", "))
+	}
+	if d.Index.Note != "" {
+		fmt.Printf("%s: %s\n", l.T("label_note"), d.Index.Note)
+	}
+	for _, kv := range d.Index.CustomFields {
+		fmt.Printf("%s: %s\n", kv.Key, kv.Value)
+	}
+	fmt.Printf("%s: %s\n", l.T("label_password"), d.Payload.Password)
 	return nil
 }
 

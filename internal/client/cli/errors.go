@@ -7,6 +7,8 @@ import (
 	clienti18n "github.com/aikowocki/yandex-go-final-diploma/internal/client/i18n"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/keyring"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
+	secretuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/secret"
+	vaultuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/vault"
 )
 
 // RenderError переводит ошибку команды в понятный локализованный текст для пользователя.
@@ -39,6 +41,12 @@ func RenderError(l *clienti18n.Localizer, err error) string {
 		return l.T("err_unavailable")
 	case errors.Is(err, keyring.ErrNoToken):
 		return l.T("err_no_token")
+	case errors.Is(err, errVaultNotFound):
+		return l.T("err_vault_not_found")
+	case errors.Is(err, errVaultAmbiguous):
+		return l.T("err_vault_ambiguous")
+	case errors.Is(err, vaultuc.ErrLocked), errors.Is(err, secretuc.ErrVaultLocked):
+		return l.T("err_locked")
 	case errors.Is(err, grpcclient.ErrInternal):
 		return l.T("err_internal")
 	default:

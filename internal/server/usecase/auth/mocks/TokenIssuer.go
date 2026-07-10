@@ -80,69 +80,6 @@ func (_c *MockTokenIssuer_Issue_Call) RunAndReturn(run func(string) (string, str
 	return _c
 }
 
-// Refresh provides a mock function with given fields: refreshToken
-func (_m *MockTokenIssuer) Refresh(refreshToken string) (string, string, error) {
-	ret := _m.Called(refreshToken)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Refresh")
-	}
-
-	var r0 string
-	var r1 string
-	var r2 error
-	if rf, ok := ret.Get(0).(func(string) (string, string, error)); ok {
-		return rf(refreshToken)
-	}
-	if rf, ok := ret.Get(0).(func(string) string); ok {
-		r0 = rf(refreshToken)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	if rf, ok := ret.Get(1).(func(string) string); ok {
-		r1 = rf(refreshToken)
-	} else {
-		r1 = ret.Get(1).(string)
-	}
-
-	if rf, ok := ret.Get(2).(func(string) error); ok {
-		r2 = rf(refreshToken)
-	} else {
-		r2 = ret.Error(2)
-	}
-
-	return r0, r1, r2
-}
-
-// MockTokenIssuer_Refresh_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Refresh'
-type MockTokenIssuer_Refresh_Call struct {
-	*mock.Call
-}
-
-// Refresh is a helper method to define mock.On call
-//   - refreshToken string
-func (_e *MockTokenIssuer_Expecter) Refresh(refreshToken interface{}) *MockTokenIssuer_Refresh_Call {
-	return &MockTokenIssuer_Refresh_Call{Call: _e.mock.On("Refresh", refreshToken)}
-}
-
-func (_c *MockTokenIssuer_Refresh_Call) Run(run func(refreshToken string)) *MockTokenIssuer_Refresh_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
-	})
-	return _c
-}
-
-func (_c *MockTokenIssuer_Refresh_Call) Return(access string, refresh string, err error) *MockTokenIssuer_Refresh_Call {
-	_c.Call.Return(access, refresh, err)
-	return _c
-}
-
-func (_c *MockTokenIssuer_Refresh_Call) RunAndReturn(run func(string) (string, string, error)) *MockTokenIssuer_Refresh_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Verify provides a mock function with given fields: token
 func (_m *MockTokenIssuer) Verify(token string) (string, error) {
 	ret := _m.Called(token)
@@ -195,6 +132,62 @@ func (_c *MockTokenIssuer_Verify_Call) Return(userID string, err error) *MockTok
 }
 
 func (_c *MockTokenIssuer_Verify_Call) RunAndReturn(run func(string) (string, error)) *MockTokenIssuer_Verify_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// VerifyRefresh provides a mock function with given fields: refreshToken
+func (_m *MockTokenIssuer) VerifyRefresh(refreshToken string) (string, error) {
+	ret := _m.Called(refreshToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyRefresh")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
+		return rf(refreshToken)
+	}
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(refreshToken)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(refreshToken)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockTokenIssuer_VerifyRefresh_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyRefresh'
+type MockTokenIssuer_VerifyRefresh_Call struct {
+	*mock.Call
+}
+
+// VerifyRefresh is a helper method to define mock.On call
+//   - refreshToken string
+func (_e *MockTokenIssuer_Expecter) VerifyRefresh(refreshToken interface{}) *MockTokenIssuer_VerifyRefresh_Call {
+	return &MockTokenIssuer_VerifyRefresh_Call{Call: _e.mock.On("VerifyRefresh", refreshToken)}
+}
+
+func (_c *MockTokenIssuer_VerifyRefresh_Call) Run(run func(refreshToken string)) *MockTokenIssuer_VerifyRefresh_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockTokenIssuer_VerifyRefresh_Call) Return(userID string, err error) *MockTokenIssuer_VerifyRefresh_Call {
+	_c.Call.Return(userID, err)
+	return _c
+}
+
+func (_c *MockTokenIssuer_VerifyRefresh_Call) RunAndReturn(run func(string) (string, error)) *MockTokenIssuer_VerifyRefresh_Call {
 	_c.Call.Return(run)
 	return _c
 }

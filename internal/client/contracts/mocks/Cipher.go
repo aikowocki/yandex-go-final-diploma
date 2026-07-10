@@ -124,6 +124,63 @@ func (_c *MockCipher_EncryptStruct_Call) RunAndReturn(run func([]byte, any) ([]b
 	return _c
 }
 
+// GenerateVaultKey provides a mock function with no fields
+func (_m *MockCipher) GenerateVaultKey() ([]byte, error) {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for GenerateVaultKey")
+	}
+
+	var r0 []byte
+	var r1 error
+	if rf, ok := ret.Get(0).(func() ([]byte, error)); ok {
+		return rf()
+	}
+	if rf, ok := ret.Get(0).(func() []byte); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockCipher_GenerateVaultKey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GenerateVaultKey'
+type MockCipher_GenerateVaultKey_Call struct {
+	*mock.Call
+}
+
+// GenerateVaultKey is a helper method to define mock.On call
+func (_e *MockCipher_Expecter) GenerateVaultKey() *MockCipher_GenerateVaultKey_Call {
+	return &MockCipher_GenerateVaultKey_Call{Call: _e.mock.On("GenerateVaultKey")}
+}
+
+func (_c *MockCipher_GenerateVaultKey_Call) Run(run func()) *MockCipher_GenerateVaultKey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockCipher_GenerateVaultKey_Call) Return(_a0 []byte, _a1 error) *MockCipher_GenerateVaultKey_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockCipher_GenerateVaultKey_Call) RunAndReturn(run func() ([]byte, error)) *MockCipher_GenerateVaultKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UnwrapVaultKey provides a mock function with given fields: wrapped, masterKey
 func (_m *MockCipher) UnwrapVaultKey(wrapped []byte, masterKey []byte) ([]byte, error) {
 	ret := _m.Called(wrapped, masterKey)

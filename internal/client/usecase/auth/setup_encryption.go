@@ -43,9 +43,9 @@ func (u *UseCase) SetupEncryption(ctx context.Context, passphrase []byte) error 
 		return err
 	}
 
-	u.session.masterKey = masterKey
-	u.session.encKDFSalt = salt
-	u.session.encKDFParams = paramsJSON
+	u.sess.SetMasterKey(masterKey)
+	u.encKDFSalt = salt
+	u.encKDFParams = paramsJSON
 	return nil
 }
 

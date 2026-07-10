@@ -13,6 +13,7 @@ type Crypto interface {
 
 // Cipher — симметричное шифрование данных и envelope-обёртка ключей.
 type Cipher interface {
+	GenerateVaultKey() ([]byte, error)
 	WrapVaultKey(vaultKey, masterKey []byte) (wrapped []byte, err error)
 	UnwrapVaultKey(wrapped, masterKey []byte) (vaultKey []byte, err error)
 	EncryptStruct(key []byte, value any) ([]byte, error)

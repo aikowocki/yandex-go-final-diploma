@@ -28,8 +28,8 @@ func (u *UseCase) Login(ctx context.Context, login string, loginCredential []byt
 		return fmt.Errorf("save tokens: %w", err)
 	}
 
-	u.session.encKDFSalt = res.EncKDFSalt
-	u.session.encKDFParams = res.EncKDFParams
+	u.encKDFSalt = res.EncKDFSalt
+	u.encKDFParams = res.EncKDFParams
 	return nil
 }
 
@@ -39,20 +39,20 @@ func (u *UseCase) Unlock(_ context.Context, passphrase []byte) error {
 	if len(passphrase) == 0 {
 		return ErrEmptyPassphrase
 	}
-	if len(u.session.encKDFSalt) == 0 || len(u.session.encKDFParams) == 0 {
+	if len(u.encKDFSalt) == 0 || len(u.encKDFParams) == 0 {
 		return ErrEncryptionNotSetup
 	}
 
 	var params crypto.Params
-	if err := json.Unmarshal(u.session.encKDFParams, &params); err != nil {
+	if err := json.Unmarshal(u.encKDFParams, &params); err != nil {
 		return fmt.Errorf("unmarshal kdf params: %w", err)
 	}
 
-	masterKey, err := u.deriveMasterKey(passphrase, u.session.encKDFSalt, params)
+	masterKey, err := u.deriveMasterKey(passphrase, u.encKDFSalt, params)
 	if err != nil {
 		return err
 	}
 
-	u.session.masterKey = masterKey
+	u.sess.SetMasterKey(masterKey)
 	return nil
 }

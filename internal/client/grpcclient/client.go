@@ -12,8 +12,10 @@ import (
 
 // Client — gRPC-клиент
 type Client struct {
-	conn *grpc.ClientConn
-	auth pb.AuthServiceClient
+	conn   *grpc.ClientConn
+	auth   pb.AuthServiceClient
+	vault  pb.VaultServiceClient
+	secret pb.SecretServiceClient
 }
 
 var _ contracts.ServerClient = (*Client)(nil)
@@ -27,8 +29,10 @@ func New(addr string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		conn: conn,
-		auth: pb.NewAuthServiceClient(conn),
+		conn:   conn,
+		auth:   pb.NewAuthServiceClient(conn),
+		vault:  pb.NewVaultServiceClient(conn),
+		secret: pb.NewSecretServiceClient(conn),
 	}, nil
 }
 
@@ -106,6 +110,104 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (contrac
 		},
 		EncKDFSalt:   resp.GetEncKdfSalt(),
 		EncKDFParams: resp.GetEncKdfParams(),
+	}, nil
+}
+
+// --- VaultService ---
+
+func (c *Client) CreateVault(ctx context.Context, accessToken string, wrappedVaultKey, encName []byte) (string, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.vault.CreateVault(ctx, &pb.CreateVaultRequest{
+		WrappedVaultKey: wrappedVaultKey,
+		EncName:         encName,
+	})
+	if err != nil {
+		return "", mapErr(err)
+	}
+	return resp.GetVaultId(), nil
+}
+
+func (c *Client) ListVaults(ctx context.Context, accessToken string) ([]contracts.VaultItem, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.vault.ListVaults(ctx, &pb.ListVaultsRequest{})
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	items := make([]contracts.VaultItem, 0, len(resp.GetVaults()))
+	for _, v := range resp.GetVaults() {
+		items = append(items, contracts.VaultItem{
+			ID:              v.GetVaultId(),
+			WrappedVaultKey: v.GetWrappedVaultKey(),
+			EncName:         v.GetEncName(),
+			Version:         v.GetVersion(),
+		})
+	}
+	return items, nil
+}
+
+// --- SecretService ---
+
+func (c *Client) CreateSecret(ctx context.Context, accessToken, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) (string, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.secret.CreateSecret(ctx, &pb.CreateSecretRequest{
+		VaultId:    vaultID,
+		Type:       pb.SecretType(secretType),
+		EncRow:     encRow,
+		EncIndex:   encIndex,
+		EncPayload: encPayload,
+	})
+	if err != nil {
+		return "", mapErr(err)
+	}
+	return resp.GetSecretId(), nil
+}
+
+func (c *Client) ListSecretRows(ctx context.Context, accessToken, vaultID string) ([]contracts.SecretRowItem, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.secret.ListRow(ctx, &pb.ListRowRequest{VaultId: vaultID})
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	items := make([]contracts.SecretRowItem, 0, len(resp.GetSecrets()))
+	for _, s := range resp.GetSecrets() {
+		items = append(items, contracts.SecretRowItem{
+			ID:      s.GetSecretId(),
+			Type:    int32(s.GetType()),
+			Version: s.GetVersion(),
+			EncRow:  s.GetEncRow(),
+		})
+	}
+	return items, nil
+}
+
+func (c *Client) ListSecretIndex(ctx context.Context, accessToken, vaultID string) ([]contracts.SecretIndexItem, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.secret.ListIndex(ctx, &pb.ListIndexRequest{VaultId: vaultID})
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	items := make([]contracts.SecretIndexItem, 0, len(resp.GetSecrets()))
+	for _, s := range resp.GetSecrets() {
+		items = append(items, contracts.SecretIndexItem{
+			ID:       s.GetSecretId(),
+			Version:  s.GetVersion(),
+			EncIndex: s.GetEncIndex(),
+		})
+	}
+	return items, nil
+}
+
+func (c *Client) GetSecretPayload(ctx context.Context, accessToken, secretID string) (contracts.SecretPayloadItem, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.secret.GetPayload(ctx, &pb.GetPayloadRequest{SecretId: secretID})
+	if err != nil {
+		return contracts.SecretPayloadItem{}, mapErr(err)
+	}
+	return contracts.SecretPayloadItem{
+		ID:         resp.GetSecretId(),
+		Type:       int32(resp.GetType()),
+		Version:    resp.GetVersion(),
+		EncPayload: resp.GetEncPayload(),
 	}, nil
 }
 

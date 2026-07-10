@@ -78,3 +78,12 @@ func newAEAD(key []byte) (cipher.AEAD, error) {
 	}
 	return chacha20poly1305.NewX(key)
 }
+
+// GenerateKey возвращает криптографически случайный симметричный ключ длины KeySize
+func GenerateKey() ([]byte, error) {
+	key := make([]byte, KeySize)
+	if _, err := rand.Read(key); err != nil {
+		return nil, fmt.Errorf("crypto: generate key: %w", err)
+	}
+	return key, nil
+}

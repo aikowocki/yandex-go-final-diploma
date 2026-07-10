@@ -22,6 +22,364 @@ func (_m *MockServerClient) EXPECT() *MockServerClient_Expecter {
 	return &MockServerClient_Expecter{mock: &_m.Mock}
 }
 
+// CreateSecret provides a mock function with given fields: ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload
+func (_m *MockServerClient) CreateSecret(ctx context.Context, accessToken string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte) (string, error) {
+	ret := _m.Called(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSecret")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32, []byte, []byte, []byte) (string, error)); ok {
+		return rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32, []byte, []byte, []byte) string); ok {
+		r0 = rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int32, []byte, []byte, []byte) error); ok {
+		r1 = rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_CreateSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSecret'
+type MockServerClient_CreateSecret_Call struct {
+	*mock.Call
+}
+
+// CreateSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - vaultID string
+//   - secretType int32
+//   - encRow []byte
+//   - encIndex []byte
+//   - encPayload []byte
+func (_e *MockServerClient_Expecter) CreateSecret(ctx interface{}, accessToken interface{}, vaultID interface{}, secretType interface{}, encRow interface{}, encIndex interface{}, encPayload interface{}) *MockServerClient_CreateSecret_Call {
+	return &MockServerClient_CreateSecret_Call{Call: _e.mock.On("CreateSecret", ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)}
+}
+
+func (_c *MockServerClient_CreateSecret_Call) Run(run func(ctx context.Context, accessToken string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte)) *MockServerClient_CreateSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int32), args[4].([]byte), args[5].([]byte), args[6].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_CreateSecret_Call) Return(secretID string, err error) *MockServerClient_CreateSecret_Call {
+	_c.Call.Return(secretID, err)
+	return _c
+}
+
+func (_c *MockServerClient_CreateSecret_Call) RunAndReturn(run func(context.Context, string, string, int32, []byte, []byte, []byte) (string, error)) *MockServerClient_CreateSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateVault provides a mock function with given fields: ctx, accessToken, wrappedVaultKey, encName
+func (_m *MockServerClient) CreateVault(ctx context.Context, accessToken string, wrappedVaultKey []byte, encName []byte) (string, error) {
+	ret := _m.Called(ctx, accessToken, wrappedVaultKey, encName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateVault")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte) (string, error)); ok {
+		return rf(ctx, accessToken, wrappedVaultKey, encName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte) string); ok {
+		r0 = rf(ctx, accessToken, wrappedVaultKey, encName)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, []byte, []byte) error); ok {
+		r1 = rf(ctx, accessToken, wrappedVaultKey, encName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_CreateVault_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateVault'
+type MockServerClient_CreateVault_Call struct {
+	*mock.Call
+}
+
+// CreateVault is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - wrappedVaultKey []byte
+//   - encName []byte
+func (_e *MockServerClient_Expecter) CreateVault(ctx interface{}, accessToken interface{}, wrappedVaultKey interface{}, encName interface{}) *MockServerClient_CreateVault_Call {
+	return &MockServerClient_CreateVault_Call{Call: _e.mock.On("CreateVault", ctx, accessToken, wrappedVaultKey, encName)}
+}
+
+func (_c *MockServerClient_CreateVault_Call) Run(run func(ctx context.Context, accessToken string, wrappedVaultKey []byte, encName []byte)) *MockServerClient_CreateVault_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_CreateVault_Call) Return(vaultID string, err error) *MockServerClient_CreateVault_Call {
+	_c.Call.Return(vaultID, err)
+	return _c
+}
+
+func (_c *MockServerClient_CreateVault_Call) RunAndReturn(run func(context.Context, string, []byte, []byte) (string, error)) *MockServerClient_CreateVault_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetSecretPayload provides a mock function with given fields: ctx, accessToken, secretID
+func (_m *MockServerClient) GetSecretPayload(ctx context.Context, accessToken string, secretID string) (contracts.SecretPayloadItem, error) {
+	ret := _m.Called(ctx, accessToken, secretID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSecretPayload")
+	}
+
+	var r0 contracts.SecretPayloadItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (contracts.SecretPayloadItem, error)); ok {
+		return rf(ctx, accessToken, secretID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) contracts.SecretPayloadItem); ok {
+		r0 = rf(ctx, accessToken, secretID)
+	} else {
+		r0 = ret.Get(0).(contracts.SecretPayloadItem)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, accessToken, secretID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_GetSecretPayload_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSecretPayload'
+type MockServerClient_GetSecretPayload_Call struct {
+	*mock.Call
+}
+
+// GetSecretPayload is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+func (_e *MockServerClient_Expecter) GetSecretPayload(ctx interface{}, accessToken interface{}, secretID interface{}) *MockServerClient_GetSecretPayload_Call {
+	return &MockServerClient_GetSecretPayload_Call{Call: _e.mock.On("GetSecretPayload", ctx, accessToken, secretID)}
+}
+
+func (_c *MockServerClient_GetSecretPayload_Call) Run(run func(ctx context.Context, accessToken string, secretID string)) *MockServerClient_GetSecretPayload_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_GetSecretPayload_Call) Return(_a0 contracts.SecretPayloadItem, _a1 error) *MockServerClient_GetSecretPayload_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_GetSecretPayload_Call) RunAndReturn(run func(context.Context, string, string) (contracts.SecretPayloadItem, error)) *MockServerClient_GetSecretPayload_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListSecretIndex provides a mock function with given fields: ctx, accessToken, vaultID
+func (_m *MockServerClient) ListSecretIndex(ctx context.Context, accessToken string, vaultID string) ([]contracts.SecretIndexItem, error) {
+	ret := _m.Called(ctx, accessToken, vaultID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListSecretIndex")
+	}
+
+	var r0 []contracts.SecretIndexItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]contracts.SecretIndexItem, error)); ok {
+		return rf(ctx, accessToken, vaultID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []contracts.SecretIndexItem); ok {
+		r0 = rf(ctx, accessToken, vaultID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]contracts.SecretIndexItem)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, accessToken, vaultID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_ListSecretIndex_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSecretIndex'
+type MockServerClient_ListSecretIndex_Call struct {
+	*mock.Call
+}
+
+// ListSecretIndex is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - vaultID string
+func (_e *MockServerClient_Expecter) ListSecretIndex(ctx interface{}, accessToken interface{}, vaultID interface{}) *MockServerClient_ListSecretIndex_Call {
+	return &MockServerClient_ListSecretIndex_Call{Call: _e.mock.On("ListSecretIndex", ctx, accessToken, vaultID)}
+}
+
+func (_c *MockServerClient_ListSecretIndex_Call) Run(run func(ctx context.Context, accessToken string, vaultID string)) *MockServerClient_ListSecretIndex_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_ListSecretIndex_Call) Return(_a0 []contracts.SecretIndexItem, _a1 error) *MockServerClient_ListSecretIndex_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_ListSecretIndex_Call) RunAndReturn(run func(context.Context, string, string) ([]contracts.SecretIndexItem, error)) *MockServerClient_ListSecretIndex_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListSecretRows provides a mock function with given fields: ctx, accessToken, vaultID
+func (_m *MockServerClient) ListSecretRows(ctx context.Context, accessToken string, vaultID string) ([]contracts.SecretRowItem, error) {
+	ret := _m.Called(ctx, accessToken, vaultID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListSecretRows")
+	}
+
+	var r0 []contracts.SecretRowItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]contracts.SecretRowItem, error)); ok {
+		return rf(ctx, accessToken, vaultID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []contracts.SecretRowItem); ok {
+		r0 = rf(ctx, accessToken, vaultID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]contracts.SecretRowItem)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, accessToken, vaultID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_ListSecretRows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSecretRows'
+type MockServerClient_ListSecretRows_Call struct {
+	*mock.Call
+}
+
+// ListSecretRows is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - vaultID string
+func (_e *MockServerClient_Expecter) ListSecretRows(ctx interface{}, accessToken interface{}, vaultID interface{}) *MockServerClient_ListSecretRows_Call {
+	return &MockServerClient_ListSecretRows_Call{Call: _e.mock.On("ListSecretRows", ctx, accessToken, vaultID)}
+}
+
+func (_c *MockServerClient_ListSecretRows_Call) Run(run func(ctx context.Context, accessToken string, vaultID string)) *MockServerClient_ListSecretRows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_ListSecretRows_Call) Return(_a0 []contracts.SecretRowItem, _a1 error) *MockServerClient_ListSecretRows_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_ListSecretRows_Call) RunAndReturn(run func(context.Context, string, string) ([]contracts.SecretRowItem, error)) *MockServerClient_ListSecretRows_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListVaults provides a mock function with given fields: ctx, accessToken
+func (_m *MockServerClient) ListVaults(ctx context.Context, accessToken string) ([]contracts.VaultItem, error) {
+	ret := _m.Called(ctx, accessToken)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListVaults")
+	}
+
+	var r0 []contracts.VaultItem
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]contracts.VaultItem, error)); ok {
+		return rf(ctx, accessToken)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []contracts.VaultItem); ok {
+		r0 = rf(ctx, accessToken)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]contracts.VaultItem)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, accessToken)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_ListVaults_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListVaults'
+type MockServerClient_ListVaults_Call struct {
+	*mock.Call
+}
+
+// ListVaults is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+func (_e *MockServerClient_Expecter) ListVaults(ctx interface{}, accessToken interface{}) *MockServerClient_ListVaults_Call {
+	return &MockServerClient_ListVaults_Call{Call: _e.mock.On("ListVaults", ctx, accessToken)}
+}
+
+func (_c *MockServerClient_ListVaults_Call) Run(run func(ctx context.Context, accessToken string)) *MockServerClient_ListVaults_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_ListVaults_Call) Return(_a0 []contracts.VaultItem, _a1 error) *MockServerClient_ListVaults_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_ListVaults_Call) RunAndReturn(run func(context.Context, string) ([]contracts.VaultItem, error)) *MockServerClient_ListVaults_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Login provides a mock function with given fields: ctx, login, loginCredential
 func (_m *MockServerClient) Login(ctx context.Context, login string, loginCredential []byte) (contracts.LoginResult, error) {
 	ret := _m.Called(ctx, login, loginCredential)

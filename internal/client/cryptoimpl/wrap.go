@@ -7,6 +7,11 @@ import (
 
 var _ contracts.Cipher = Crypto{}
 
+// GenerateVaultKey генерирует случайный VaultKey (DEK) для новой папки.
+func (c Crypto) GenerateVaultKey() ([]byte, error) {
+	return crypto.GenerateKey()
+}
+
 // WrapVaultKey оборачивает VaultKey под MasterKey (envelope encryption).
 // MasterKey выступает key-encryption-key. На сервер уходит только wrapped.
 func (c Crypto) WrapVaultKey(vaultKey, masterKey []byte) ([]byte, error) {

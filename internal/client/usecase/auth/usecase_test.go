@@ -14,12 +14,13 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts/mocks"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
 	"github.com/aikowocki/yandex-go-final-diploma/pkg/crypto"
 )
 
 func newUseCase(server contracts.ServerClient, store contracts.TokenStore) *authuc.UseCase {
-	return authuc.New(server, cryptoimpl.Crypto{}, store)
+	return authuc.New(server, cryptoimpl.Crypto{}, store, session.New())
 }
 
 // testParams — облегчённые параметры Argon2id для юнит-тестов: KDF гоняется по-настоящему, но быстро.

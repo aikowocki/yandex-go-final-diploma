@@ -8,12 +8,14 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/grpcclient"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/keyring"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
+	secretuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/secret"
+	vaultuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/vault"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/logger"
 )
 
 // New собирает все зависимости из уже разобранного конфига и возвращает готовый Container.
-// Конфиг парсится в точке входа (kong.Parse корневой CLI-структуры) и передаётся сюда.
 func New(cfg *config.ClientConfig) (*Container, error) {
 	logger.Setup(cfg.LogLevel)
 
@@ -24,14 +26,21 @@ func New(cfg *config.ClientConfig) (*Container, error) {
 
 	tokenStore := keyring.New(cfg.DataDir, !cfg.NoPersist)
 	crypto := cryptoimpl.Crypto{}
-	authUseCase := authuc.New(grpcClient, crypto, tokenStore)
+	sess := session.New() // общий крипто-материал сессии (MasterKey + открытые VaultKey)
+
+	authUseCase := authuc.New(grpcClient, crypto, tokenStore, sess)
+	vaultUseCase := vaultuc.New(grpcClient, crypto, tokenStore, sess)
+	secretUseCase := secretuc.New(grpcClient, crypto, tokenStore, sess)
 
 	localizer := providers.NewLocalizer(cfg)
 
 	return &Container{
 		Config:    cfg,
 		GRPC:      grpcClient,
+		Session:   sess,
 		Auth:      authUseCase,
+		Vault:     vaultUseCase,
+		Secret:    secretUseCase,
 		Localizer: localizer,
 	}, nil
 }

@@ -94,6 +94,7 @@ type LocalStorage interface {
 	ListVaults(ctx context.Context) ([]LocalVault, error)
 	GetVault(ctx context.Context, id string) (LocalVault, bool, error)
 	SetVaultSyncedVersion(ctx context.Context, id string, syncedVersion int64) error
+	DeleteVault(ctx context.Context, id string) error
 
 	UpsertSecretRow(ctx context.Context, s LocalSecret) error
 	SetSecretPayload(ctx context.Context, id string, encPayload []byte, version int64) error
@@ -115,6 +116,8 @@ type LocalStorage interface {
 
 	KVGet(ctx context.Context, key string) ([]byte, bool, error)
 	KVSet(ctx context.Context, key string, value []byte) error
+
+	WipeAccountData(ctx context.Context) error
 
 	Close() error
 }

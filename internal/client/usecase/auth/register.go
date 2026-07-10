@@ -19,6 +19,10 @@ func (u *UseCase) Register(ctx context.Context, login string, loginCredential []
 		return err
 	}
 
+	if err := u.reconcileAccount(ctx, tokens.UserID); err != nil {
+		return err
+	}
+
 	if err := u.tokens.Save(tokens); err != nil {
 		return fmt.Errorf("save tokens: %w", err)
 	}

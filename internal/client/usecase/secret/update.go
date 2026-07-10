@@ -216,5 +216,6 @@ func (in CreateLoginPasswordInput) toPayload() secretcontent.LoginPasswordPayloa
 	return secretcontent.LoginPasswordPayload{
 		V:        secretcontent.LoginPasswordSchemaV1,
 		Password: in.Password,
+		OTPCodes: in.OTPCodes,
 	}
 }

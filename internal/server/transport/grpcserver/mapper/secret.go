@@ -37,6 +37,16 @@ func DeleteSecretParams(userID string, req *pb.DeleteSecretRequest) secret.Delet
 	}
 }
 
+func AttachBlobParams(userID string, req *pb.AttachBlobRequest) secret.AttachBlobParams {
+	return secret.AttachBlobParams{
+		UserID:      userID,
+		SecretID:    req.GetSecretId(),
+		BaseVersion: req.GetBaseVersion(),
+		BlobRef:     req.GetBlobRef(),
+		BlobSize:    req.GetBlobSize(),
+	}
+}
+
 // SecretConflictDetail строит proto-деталь конфликта из полной серверной версии секрета.
 func SecretConflictDetail(s domain.Secret) *pb.SecretConflict {
 	return &pb.SecretConflict{

@@ -10,8 +10,9 @@ import (
 
 // Ключи kv-кеша для параметров KDF ветки шифрования.
 const (
-	kvEncKDFSalt   = "auth.enc_kdf_salt"
-	kvEncKDFParams = "auth.enc_kdf_params"
+	kvEncKDFSalt    = "auth.enc_kdf_salt"
+	kvEncKDFParams  = "auth.enc_kdf_params"
+	kvAccountUserID = "auth.account_user_id"
 )
 
 type UseCase struct {
@@ -54,6 +55,35 @@ func (u *UseCase) persistEncryption(ctx context.Context) error {
 	}
 	if err := u.local.KVSet(ctx, kvEncKDFParams, u.encKDFParams); err != nil {
 		return fmt.Errorf("cache kdf params: %w", err)
+	}
+	return nil
+}
+
+// reconcileAccount сверяет userID (полученный от Register/Login/Refresh) с тем, чьи данные
+// сейчас лежат в локальном кеше (kvAccountUserID). Если кеш принадлежит ДРУГОМУ аккаунту,
+// стирает весь локальный кеш перед тем как продолжить, чтобы не смешивать шифротексты разных
+// MasterKey. Пустой кеш (первый запуск) или совпадающий userID — no-op.
+func (u *UseCase) reconcileAccount(ctx context.Context, userID string) error {
+	if userID == "" {
+		return nil // сервер старой версии/тест без UserID — не блокируем
+	}
+
+	cached, ok, err := u.local.KVGet(ctx, kvAccountUserID)
+	if err != nil {
+		return fmt.Errorf("read cached account: %w", err)
+	}
+
+	if ok && string(cached) != userID {
+		if err := u.local.WipeAccountData(ctx); err != nil {
+			return fmt.Errorf("wipe stale account cache: %w", err)
+		}
+		// Сброс сессии: MasterKey/VaultKey предыдущего аккаунта больше не актуальны.
+		u.sess.Lock()
+		u.encKDFSalt, u.encKDFParams = nil, nil
+	}
+
+	if err := u.local.KVSet(ctx, kvAccountUserID, []byte(userID)); err != nil {
+		return fmt.Errorf("remember account: %w", err)
 	}
 	return nil
 }

@@ -28,6 +28,7 @@ func (u *UseCase) RefreshToken(ctx context.Context, params RefreshParams) (AuthR
 	}
 
 	return AuthResult{
+		UserID:       userID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 		EncKDFSalt:   user.EncKDFSalt,

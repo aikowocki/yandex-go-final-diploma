@@ -22,6 +22,65 @@ func (_m *MockRepository) EXPECT() *MockRepository_Expecter {
 	return &MockRepository_Expecter{mock: &_m.Mock}
 }
 
+// AttachBlob provides a mock function with given fields: ctx, secretID, blobRef, blobSize
+func (_m *MockRepository) AttachBlob(ctx context.Context, secretID string, blobRef string, blobSize int64) (int64, error) {
+	ret := _m.Called(ctx, secretID, blobRef, blobSize)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AttachBlob")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64) (int64, error)); ok {
+		return rf(ctx, secretID, blobRef, blobSize)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64) int64); ok {
+		r0 = rf(ctx, secretID, blobRef, blobSize)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64) error); ok {
+		r1 = rf(ctx, secretID, blobRef, blobSize)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_AttachBlob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AttachBlob'
+type MockRepository_AttachBlob_Call struct {
+	*mock.Call
+}
+
+// AttachBlob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - secretID string
+//   - blobRef string
+//   - blobSize int64
+func (_e *MockRepository_Expecter) AttachBlob(ctx interface{}, secretID interface{}, blobRef interface{}, blobSize interface{}) *MockRepository_AttachBlob_Call {
+	return &MockRepository_AttachBlob_Call{Call: _e.mock.On("AttachBlob", ctx, secretID, blobRef, blobSize)}
+}
+
+func (_c *MockRepository_AttachBlob_Call) Run(run func(ctx context.Context, secretID string, blobRef string, blobSize int64)) *MockRepository_AttachBlob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int64))
+	})
+	return _c
+}
+
+func (_c *MockRepository_AttachBlob_Call) Return(_a0 int64, _a1 error) *MockRepository_AttachBlob_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_AttachBlob_Call) RunAndReturn(run func(context.Context, string, string, int64) (int64, error)) *MockRepository_AttachBlob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BumpVaultVersion provides a mock function with given fields: ctx, vaultID
 func (_m *MockRepository) BumpVaultVersion(ctx context.Context, vaultID string) error {
 	ret := _m.Called(ctx, vaultID)

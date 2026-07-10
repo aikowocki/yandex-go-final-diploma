@@ -16,6 +16,7 @@ func RegisterResponse(res auth.RegisterResult) *pb.RegisterResponse {
 	return &pb.RegisterResponse{
 		AccessToken:  res.AccessToken,
 		RefreshToken: res.RefreshToken,
+		UserId:       res.UserID,
 	}
 }
 
@@ -40,6 +41,7 @@ func LoginResponse(res auth.AuthResult) *pb.LoginResponse {
 		RefreshToken: res.RefreshToken,
 		EncKdfSalt:   res.EncKDFSalt,
 		EncKdfParams: res.EncKDFParams,
+		UserId:       res.UserID,
 	}
 }
 
@@ -55,5 +57,6 @@ func RefreshTokenResponse(res auth.AuthResult) *pb.RefreshTokenResponse {
 		RefreshToken: res.RefreshToken,
 		EncKdfSalt:   res.EncKDFSalt,
 		EncKdfParams: res.EncKDFParams,
+		UserId:       res.UserID,
 	}
 }

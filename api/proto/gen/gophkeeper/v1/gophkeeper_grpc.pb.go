@@ -753,3 +753,192 @@ var SecretService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "gophkeeper/v1/gophkeeper.proto",
 }
+
+const (
+	BlobService_UploadBlob_FullMethodName   = "/gophkeeper.v1.BlobService/UploadBlob"
+	BlobService_DownloadBlob_FullMethodName = "/gophkeeper.v1.BlobService/DownloadBlob"
+	BlobService_AttachBlob_FullMethodName   = "/gophkeeper.v1.BlobService/AttachBlob"
+)
+
+// BlobServiceClient is the client API for BlobService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// BlobService — потоковая загрузка/скачивание крупных бинарных секретов (type=binary).
+// Сервер транзитом кладёт/читает уже зашифрованные клиентом чанки (ciphertext) в/из MinIO,
+// не расшифровывая их (E2E). Порядок для CreateSecret(type=binary):
+//  1. CreateSecret с blob_ref пустым;
+//  2. UploadBlob (client-streaming) с этим secret_id — заливает чанки;
+//  3. AttachBlob — прописывает blob_ref/blob_size, полученные от UploadBlob, к секрету.
+type BlobServiceClient interface {
+	UploadBlob(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadBlobChunk, UploadBlobResult], error)
+	DownloadBlob(ctx context.Context, in *DownloadBlobRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DownloadBlobChunk], error)
+	AttachBlob(ctx context.Context, in *AttachBlobRequest, opts ...grpc.CallOption) (*AttachBlobResponse, error)
+}
+
+type blobServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewBlobServiceClient(cc grpc.ClientConnInterface) BlobServiceClient {
+	return &blobServiceClient{cc}
+}
+
+func (c *blobServiceClient) UploadBlob(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadBlobChunk, UploadBlobResult], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &BlobService_ServiceDesc.Streams[0], BlobService_UploadBlob_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[UploadBlobChunk, UploadBlobResult]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlobService_UploadBlobClient = grpc.ClientStreamingClient[UploadBlobChunk, UploadBlobResult]
+
+func (c *blobServiceClient) DownloadBlob(ctx context.Context, in *DownloadBlobRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DownloadBlobChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &BlobService_ServiceDesc.Streams[1], BlobService_DownloadBlob_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[DownloadBlobRequest, DownloadBlobChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlobService_DownloadBlobClient = grpc.ServerStreamingClient[DownloadBlobChunk]
+
+func (c *blobServiceClient) AttachBlob(ctx context.Context, in *AttachBlobRequest, opts ...grpc.CallOption) (*AttachBlobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AttachBlobResponse)
+	err := c.cc.Invoke(ctx, BlobService_AttachBlob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// BlobServiceServer is the server API for BlobService service.
+// All implementations must embed UnimplementedBlobServiceServer
+// for forward compatibility.
+//
+// BlobService — потоковая загрузка/скачивание крупных бинарных секретов (type=binary).
+// Сервер транзитом кладёт/читает уже зашифрованные клиентом чанки (ciphertext) в/из MinIO,
+// не расшифровывая их (E2E). Порядок для CreateSecret(type=binary):
+//  1. CreateSecret с blob_ref пустым;
+//  2. UploadBlob (client-streaming) с этим secret_id — заливает чанки;
+//  3. AttachBlob — прописывает blob_ref/blob_size, полученные от UploadBlob, к секрету.
+type BlobServiceServer interface {
+	UploadBlob(grpc.ClientStreamingServer[UploadBlobChunk, UploadBlobResult]) error
+	DownloadBlob(*DownloadBlobRequest, grpc.ServerStreamingServer[DownloadBlobChunk]) error
+	AttachBlob(context.Context, *AttachBlobRequest) (*AttachBlobResponse, error)
+	mustEmbedUnimplementedBlobServiceServer()
+}
+
+// UnimplementedBlobServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedBlobServiceServer struct{}
+
+func (UnimplementedBlobServiceServer) UploadBlob(grpc.ClientStreamingServer[UploadBlobChunk, UploadBlobResult]) error {
+	return status.Error(codes.Unimplemented, "method UploadBlob not implemented")
+}
+func (UnimplementedBlobServiceServer) DownloadBlob(*DownloadBlobRequest, grpc.ServerStreamingServer[DownloadBlobChunk]) error {
+	return status.Error(codes.Unimplemented, "method DownloadBlob not implemented")
+}
+func (UnimplementedBlobServiceServer) AttachBlob(context.Context, *AttachBlobRequest) (*AttachBlobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AttachBlob not implemented")
+}
+func (UnimplementedBlobServiceServer) mustEmbedUnimplementedBlobServiceServer() {}
+func (UnimplementedBlobServiceServer) testEmbeddedByValue()                     {}
+
+// UnsafeBlobServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to BlobServiceServer will
+// result in compilation errors.
+type UnsafeBlobServiceServer interface {
+	mustEmbedUnimplementedBlobServiceServer()
+}
+
+func RegisterBlobServiceServer(s grpc.ServiceRegistrar, srv BlobServiceServer) {
+	// If the following call panics, it indicates UnimplementedBlobServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&BlobService_ServiceDesc, srv)
+}
+
+func _BlobService_UploadBlob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BlobServiceServer).UploadBlob(&grpc.GenericServerStream[UploadBlobChunk, UploadBlobResult]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlobService_UploadBlobServer = grpc.ClientStreamingServer[UploadBlobChunk, UploadBlobResult]
+
+func _BlobService_DownloadBlob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DownloadBlobRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BlobServiceServer).DownloadBlob(m, &grpc.GenericServerStream[DownloadBlobRequest, DownloadBlobChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BlobService_DownloadBlobServer = grpc.ServerStreamingServer[DownloadBlobChunk]
+
+func _BlobService_AttachBlob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttachBlobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BlobServiceServer).AttachBlob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BlobService_AttachBlob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BlobServiceServer).AttachBlob(ctx, req.(*AttachBlobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// BlobService_ServiceDesc is the grpc.ServiceDesc for BlobService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var BlobService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gophkeeper.v1.BlobService",
+	HandlerType: (*BlobServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AttachBlob",
+			Handler:    _BlobService_AttachBlob_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "UploadBlob",
+			Handler:       _BlobService_UploadBlob_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "DownloadBlob",
+			Handler:       _BlobService_DownloadBlob_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "gophkeeper/v1/gophkeeper.proto",
+}

@@ -55,10 +55,41 @@ func Auth(verifier TokenVerifier) grpc.UnaryServerInterceptor {
 	}
 }
 
-// UserIDFromContext достаёт userID, положенный интерцептором Auth.
+// UserIDFromContext достаёт userID, положенный интерцептором Auth/StreamAuth.
 func UserIDFromContext(ctx context.Context) (string, bool) {
 	userID, ok := ctx.Value(userIDContextKey).(string)
 	return userID, ok
+}
+
+// authenticatedStream оборачивает grpc.ServerStream, подменяя Context() на контекст с userID —
+// нужно, так как ServerStream.Context() нельзя изменить напрямую.
+type authenticatedStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s *authenticatedStream) Context() context.Context { return s.ctx }
+
+// StreamAuth — интерцептор для streaming RPC (client/server-streaming), проверяющий access-token
+// так же, как Auth для unary. Нужен отдельно: grpc.UnaryInterceptor не применяется к стримам.
+func StreamAuth(verifier TokenVerifier) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if methodsWithoutAuth[info.FullMethod] {
+			return handler(srv, ss)
+		}
+
+		token, err := extractBearerToken(ss.Context())
+		if err != nil {
+			return err
+		}
+		userID, err := verifier.Verify(token)
+		if err != nil {
+			return status.Error(codes.Unauthenticated, "invalid or expired access token")
+		}
+
+		ctx := context.WithValue(ss.Context(), userIDContextKey, userID)
+		return handler(srv, &authenticatedStream{ServerStream: ss, ctx: ctx})
+	}
 }
 
 func extractBearerToken(ctx context.Context) (string, error) {

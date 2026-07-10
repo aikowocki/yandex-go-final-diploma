@@ -33,5 +33,5 @@ func (u *UseCase) Register(ctx context.Context, params RegisterParams) (Register
 		return RegisterResult{}, err
 	}
 
-	return RegisterResult{AccessToken: access, RefreshToken: refresh}, nil
+	return RegisterResult{UserID: user.ID, AccessToken: access, RefreshToken: refresh}, nil
 }

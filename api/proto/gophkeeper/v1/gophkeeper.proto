@@ -30,7 +30,48 @@ service SecretService {
   rpc GetPayload(GetPayloadRequest) returns (GetPayloadResponse); // Tier 3
 }
 
-// TODO: BlobService — стриминг бинарных данных
+// BlobService — потоковая загрузка/скачивание крупных бинарных секретов (type=binary).
+// Сервер транзитом кладёт/читает уже зашифрованные клиентом чанки (ciphertext) в/из MinIO,
+// не расшифровывая их (E2E). Порядок для CreateSecret(type=binary):
+//  1) CreateSecret с blob_ref пустым;
+//  2) UploadBlob (client-streaming) с этим secret_id — заливает чанки;
+//  3) AttachBlob — прописывает blob_ref/blob_size, полученные от UploadBlob, к секрету.
+service BlobService {
+  rpc UploadBlob(stream UploadBlobChunk) returns (UploadBlobResult);
+  rpc DownloadBlob(DownloadBlobRequest) returns (stream DownloadBlobChunk);
+  rpc AttachBlob(AttachBlobRequest) returns (AttachBlobResponse);
+}
+
+// UploadBlobChunk — один чанк потока загрузки. secret_id передаётся в первом сообщении потока
+// (клиент должен слать одно и то же secret_id во всех чанках одной загрузки).
+message UploadBlobChunk {
+  string secret_id = 1;
+  bytes data = 2; // зашифрованный чанк (потоковый AEAD клиента, тег на чанк)
+}
+
+message UploadBlobResult {
+  string blob_ref = 1;  // ключ объекта в MinIO
+  int64 blob_size = 2;  // итоговый размер объекта (зашифрованных байт) в MinIO
+}
+
+message DownloadBlobRequest {
+  string secret_id = 1;
+}
+
+message DownloadBlobChunk {
+  bytes data = 1;
+}
+
+message AttachBlobRequest {
+  string secret_id = 1;
+  int64 base_version = 2; // оптимистичная блокировка, та же семантика, что и UpdateSecret
+  string blob_ref = 3;
+  int64 blob_size = 4;
+}
+
+message AttachBlobResponse {
+  int64 version = 1;
+}
 
 // SecretType — тип секрета (открытое поле). Значения зеркалят server domain.SecretType.
 enum SecretType {
@@ -172,6 +213,7 @@ message RegisterRequest {
 message RegisterResponse {
   string access_token = 1;
   string refresh_token = 2;
+  string user_id = 3; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
 }
 
 message SetupEncryptionRequest {
@@ -192,6 +234,7 @@ message LoginResponse {
   string refresh_token = 2;
   bytes enc_kdf_salt = 3;
   bytes enc_kdf_params = 4;
+  string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
 }
 
 message RefreshTokenRequest {
@@ -203,4 +246,5 @@ message RefreshTokenResponse {
   string refresh_token = 2;
   bytes enc_kdf_salt = 3;
   bytes enc_kdf_params = 4;
+  string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
 }

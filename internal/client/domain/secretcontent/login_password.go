@@ -26,6 +26,7 @@ type LoginPasswordIndex struct {
 
 // LoginPasswordPayload — чувствительное тело, грузится лениво при просмотре.
 type LoginPasswordPayload struct {
-	V        int    `json:"v"`
-	Password string `json:"password"`
+	V        int       `json:"v"`
+	Password string    `json:"password"`
+	OTPCodes []OTPCode `json:"otp_codes,omitempty"`
 }

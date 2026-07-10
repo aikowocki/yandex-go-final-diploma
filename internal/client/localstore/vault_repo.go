@@ -69,6 +69,14 @@ func (s *Store) SetVaultSyncedVersion(ctx context.Context, id string, syncedVers
 	return nil
 }
 
+func (s *Store) DeleteVault(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM vaults WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("localstore: delete vault: %w", err)
+	}
+	return nil
+}
+
 func scanVault(sc scanner) (contracts.LocalVault, error) {
 	var v contracts.LocalVault
 	var deleted int

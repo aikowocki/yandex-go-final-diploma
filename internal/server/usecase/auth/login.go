@@ -38,6 +38,7 @@ func (u *UseCase) Login(ctx context.Context, params LoginParams) (AuthResult, er
 	}
 
 	return AuthResult{
+		UserID:       user.ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 		EncKDFSalt:   user.EncKDFSalt,

@@ -14,6 +14,8 @@ type ServerConfig struct {
 	MinioEndpoint string          `help:"MinIO endpoint" env:"MINIO_ENDPOINT"`
 	MinioAccess   string          `help:"MinIO access key" env:"MINIO_ACCESS_KEY"`
 	MinioSecret   string          `help:"MinIO secret key" env:"MINIO_SECRET_KEY"`
+	MinioBucket   string          `help:"MinIO bucket for binary secret blobs" default:"gophkeeper-blobs" env:"MINIO_BUCKET"`
+	MinioUseSSL   bool            `help:"Use TLS when connecting to MinIO" env:"MINIO_USE_SSL"`
 	ConfigFile    kong.ConfigFlag `help:"path to JSON config file" short:"c" env:"CONFIG" placeholder:"PATH"`
 }
 

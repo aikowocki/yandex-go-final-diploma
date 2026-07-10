@@ -1,10 +1,14 @@
 package contracts
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 type Tokens struct {
 	AccessToken  string
 	RefreshToken string
+	UserID       string
 }
 
 type LoginResult struct {
@@ -58,6 +62,10 @@ type ServerSecret struct {
 }
 
 type ServerClient interface {
+	UploadBlob(ctx context.Context, accessToken, secretID string, r io.Reader) (blobRef string, blobSize int64, err error)
+	DownloadBlob(ctx context.Context, accessToken, secretID string) (io.ReadCloser, error)
+	AttachBlob(ctx context.Context, accessToken, secretID string, baseVersion int64, blobRef string, blobSize int64) (newVersion int64, err error)
+
 	Register(ctx context.Context, login string, loginCredential []byte) (Tokens, error)
 	SetupEncryption(ctx context.Context, accessToken string, encKDFSalt, encKDFParams []byte) error
 	Login(ctx context.Context, login string, loginCredential []byte) (LoginResult, error)

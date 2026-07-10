@@ -23,6 +23,11 @@ type SecretCmd struct {
 	Show   SecretShowCmd   `cmd:"" help:"Show a secret's full card (all fields, incl. password)."`
 	Update SecretUpdateCmd `cmd:"" help:"Update a secret (optimistic locking; resolves conflicts)."`
 	Delete SecretDeleteCmd `cmd:"" help:"Delete a secret (soft-delete, optimistic locking)."`
+	OTPUse OTPUseCmd       `cmd:"otp-use" help:"Mark a recovery code as used (any secret type)."`
+	Text   TextCmd         `cmd:"" help:"Manage type=text secrets (free-form notes)."`
+	File   FileCmd         `cmd:"" help:"Manage type=binary secrets (large files, streamed via MinIO)."`
+	Card   BankCardCmd     `cmd:"" help:"Manage type=bank_card secrets."`
+	TOTP   TOTPCmd         `cmd:"" help:"Manage type=totp secrets (authenticator codes)."`
 }
 
 type SecretAddCmd struct {
@@ -146,6 +151,7 @@ func (c *SecretShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret
 		fmt.Printf("%s: %s\n", kv.Key, kv.Value)
 	}
 	fmt.Printf("%s: %s\n", l.T("label_password"), d.Payload.Password)
+	printOTPCodes(l, d.Payload.OTPCodes)
 	return nil
 }
 

@@ -27,3 +27,9 @@ packages:
       Repository:
       VaultOwnership:
       TxManager:
+  github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/blob:
+    interfaces:
+      SecretLookup:
+  github.com/aikowocki/yandex-go-final-diploma/internal/server/contracts:
+    interfaces:
+      BlobStorage:

@@ -21,11 +21,18 @@ func New(ctx context.Context) (*Container, error) {
 		return nil, fmt.Errorf("database: %w", err)
 	}
 
-	grpcSrv := providers.NewGRPC(cfg, db)
+	objectStore, err := providers.NewObjectStore(ctx, cfg)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("object store: %w", err)
+	}
+
+	grpcSrv := providers.NewGRPC(cfg, db, objectStore)
 
 	return &Container{
-		Config: cfg,
-		DB:     db,
-		GRPC:   grpcSrv,
+		Config:      cfg,
+		DB:          db,
+		ObjectStore: objectStore,
+		GRPC:        grpcSrv,
 	}, nil
 }

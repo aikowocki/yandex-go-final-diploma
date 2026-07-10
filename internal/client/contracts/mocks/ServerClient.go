@@ -4,8 +4,10 @@ package mocks
 
 import (
 	context "context"
+	io "io"
 
 	contracts "github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -20,6 +22,67 @@ type MockServerClient_Expecter struct {
 
 func (_m *MockServerClient) EXPECT() *MockServerClient_Expecter {
 	return &MockServerClient_Expecter{mock: &_m.Mock}
+}
+
+// AttachBlob provides a mock function with given fields: ctx, accessToken, secretID, baseVersion, blobRef, blobSize
+func (_m *MockServerClient) AttachBlob(ctx context.Context, accessToken string, secretID string, baseVersion int64, blobRef string, blobSize int64) (int64, error) {
+	ret := _m.Called(ctx, accessToken, secretID, baseVersion, blobRef, blobSize)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AttachBlob")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, string, int64) (int64, error)); ok {
+		return rf(ctx, accessToken, secretID, baseVersion, blobRef, blobSize)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, string, int64) int64); ok {
+		r0 = rf(ctx, accessToken, secretID, baseVersion, blobRef, blobSize)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, string, int64) error); ok {
+		r1 = rf(ctx, accessToken, secretID, baseVersion, blobRef, blobSize)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_AttachBlob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AttachBlob'
+type MockServerClient_AttachBlob_Call struct {
+	*mock.Call
+}
+
+// AttachBlob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+//   - baseVersion int64
+//   - blobRef string
+//   - blobSize int64
+func (_e *MockServerClient_Expecter) AttachBlob(ctx interface{}, accessToken interface{}, secretID interface{}, baseVersion interface{}, blobRef interface{}, blobSize interface{}) *MockServerClient_AttachBlob_Call {
+	return &MockServerClient_AttachBlob_Call{Call: _e.mock.On("AttachBlob", ctx, accessToken, secretID, baseVersion, blobRef, blobSize)}
+}
+
+func (_c *MockServerClient_AttachBlob_Call) Run(run func(ctx context.Context, accessToken string, secretID string, baseVersion int64, blobRef string, blobSize int64)) *MockServerClient_AttachBlob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int64), args[4].(string), args[5].(int64))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_AttachBlob_Call) Return(newVersion int64, err error) *MockServerClient_AttachBlob_Call {
+	_c.Call.Return(newVersion, err)
+	return _c
+}
+
+func (_c *MockServerClient_AttachBlob_Call) RunAndReturn(run func(context.Context, string, string, int64, string, int64) (int64, error)) *MockServerClient_AttachBlob_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // CheckFreshness provides a mock function with given fields: ctx, accessToken
@@ -238,6 +301,66 @@ func (_c *MockServerClient_DeleteSecret_Call) Return(_a0 error) *MockServerClien
 }
 
 func (_c *MockServerClient_DeleteSecret_Call) RunAndReturn(run func(context.Context, string, string, int64) error) *MockServerClient_DeleteSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DownloadBlob provides a mock function with given fields: ctx, accessToken, secretID
+func (_m *MockServerClient) DownloadBlob(ctx context.Context, accessToken string, secretID string) (io.ReadCloser, error) {
+	ret := _m.Called(ctx, accessToken, secretID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DownloadBlob")
+	}
+
+	var r0 io.ReadCloser
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (io.ReadCloser, error)); ok {
+		return rf(ctx, accessToken, secretID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) io.ReadCloser); ok {
+		r0 = rf(ctx, accessToken, secretID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(io.ReadCloser)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, accessToken, secretID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_DownloadBlob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DownloadBlob'
+type MockServerClient_DownloadBlob_Call struct {
+	*mock.Call
+}
+
+// DownloadBlob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+func (_e *MockServerClient_Expecter) DownloadBlob(ctx interface{}, accessToken interface{}, secretID interface{}) *MockServerClient_DownloadBlob_Call {
+	return &MockServerClient_DownloadBlob_Call{Call: _e.mock.On("DownloadBlob", ctx, accessToken, secretID)}
+}
+
+func (_c *MockServerClient_DownloadBlob_Call) Run(run func(ctx context.Context, accessToken string, secretID string)) *MockServerClient_DownloadBlob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_DownloadBlob_Call) Return(_a0 io.ReadCloser, _a1 error) *MockServerClient_DownloadBlob_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_DownloadBlob_Call) RunAndReturn(run func(context.Context, string, string) (io.ReadCloser, error)) *MockServerClient_DownloadBlob_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -759,6 +882,72 @@ func (_c *MockServerClient_UpdateSecret_Call) Return(newVersion int64, err error
 }
 
 func (_c *MockServerClient_UpdateSecret_Call) RunAndReturn(run func(context.Context, string, string, int64, []byte, []byte, []byte) (int64, error)) *MockServerClient_UpdateSecret_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UploadBlob provides a mock function with given fields: ctx, accessToken, secretID, r
+func (_m *MockServerClient) UploadBlob(ctx context.Context, accessToken string, secretID string, r io.Reader) (string, int64, error) {
+	ret := _m.Called(ctx, accessToken, secretID, r)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UploadBlob")
+	}
+
+	var r0 string
+	var r1 int64
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, io.Reader) (string, int64, error)); ok {
+		return rf(ctx, accessToken, secretID, r)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, io.Reader) string); ok {
+		r0 = rf(ctx, accessToken, secretID, r)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, io.Reader) int64); ok {
+		r1 = rf(ctx, accessToken, secretID, r)
+	} else {
+		r1 = ret.Get(1).(int64)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, string, string, io.Reader) error); ok {
+		r2 = rf(ctx, accessToken, secretID, r)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MockServerClient_UploadBlob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UploadBlob'
+type MockServerClient_UploadBlob_Call struct {
+	*mock.Call
+}
+
+// UploadBlob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+//   - r io.Reader
+func (_e *MockServerClient_Expecter) UploadBlob(ctx interface{}, accessToken interface{}, secretID interface{}, r interface{}) *MockServerClient_UploadBlob_Call {
+	return &MockServerClient_UploadBlob_Call{Call: _e.mock.On("UploadBlob", ctx, accessToken, secretID, r)}
+}
+
+func (_c *MockServerClient_UploadBlob_Call) Run(run func(ctx context.Context, accessToken string, secretID string, r io.Reader)) *MockServerClient_UploadBlob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(io.Reader))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_UploadBlob_Call) Return(blobRef string, blobSize int64, err error) *MockServerClient_UploadBlob_Call {
+	_c.Call.Return(blobRef, blobSize, err)
+	return _c
+}
+
+func (_c *MockServerClient_UploadBlob_Call) RunAndReturn(run func(context.Context, string, string, io.Reader) (string, int64, error)) *MockServerClient_UploadBlob_Call {
 	_c.Call.Return(run)
 	return _c
 }

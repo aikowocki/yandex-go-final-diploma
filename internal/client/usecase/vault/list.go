@@ -3,6 +3,7 @@ package vault
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
@@ -26,15 +27,22 @@ func (u *UseCase) List(ctx context.Context) ([]DecryptedVault, error) {
 	}
 
 	result := make([]DecryptedVault, 0, len(items))
+	seen := make(map[string]struct{}, len(items))
 	for _, it := range items {
+		seen[it.ID] = struct{}{}
+
 		vaultKey, err := u.cipher.UnwrapVaultKey(it.WrappedVaultKey, masterKey)
 		if err != nil {
-			return nil, fmt.Errorf("unwrap vault key: %w", err)
+			// Не должно происходить для папок ТЕКУЩЕГО аккаунта (сервер прислал их только что),
+			// но не валим всю операцию из-за одной записи — пропускаем и логируем
+			slog.Warn("vault: unwrap vault key failed, skipping", "vault_id", it.ID, "err", err)
+			continue
 		}
 
 		var name string
 		if err := u.cipher.DecryptStruct(vaultKey, nil, it.EncName, &name); err != nil {
-			return nil, fmt.Errorf("decrypt vault name: %w", err)
+			slog.Warn("vault: decrypt vault name failed, skipping", "vault_id", it.ID, "err", err)
+			continue
 		}
 
 		u.sess.OpenVault(it.ID, vaultKey)
@@ -52,11 +60,35 @@ func (u *UseCase) List(ctx context.Context) ([]DecryptedVault, error) {
 
 		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version})
 	}
+
+	if err := u.pruneStaleVaults(ctx, seen); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
+// pruneStaleVaults удаляет из локального кеша папки, которых сервер не вернул в List (seen) —
+// сервер является источником правды для Tier 1. Покрывает как реально удалённые папки, так и
+// «осиротевшие» записи от другого аккаунта/устаревшего кеша.
+func (u *UseCase) pruneStaleVaults(ctx context.Context, seen map[string]struct{}) error {
+	cached, err := u.local.ListVaults(ctx)
+	if err != nil {
+		return fmt.Errorf("list cached vaults: %w", err)
+	}
+	for _, cv := range cached {
+		if _, ok := seen[cv.ID]; !ok {
+			if err := u.local.DeleteVault(ctx, cv.ID); err != nil {
+				return fmt.Errorf("prune stale vault %s: %w", cv.ID, err)
+			}
+		}
+	}
+	return nil
+}
+
 // ListLocal возвращает папки из локального кеша (без сети): разворачивает VaultKey MasterKey'ом,
-// расшифровывает имена и открывает в сессии.
+// расшифровывает имена и открывает в сессии. Записи, которые не разворачиваются текущим
+// MasterKey, пропускаются с предупреждением, а не обрушивают всю операцию: остальные папки
+// пользователя должны остаться доступны.
 func (u *UseCase) ListLocal(ctx context.Context) ([]DecryptedVault, error) {
 	masterKey, ok := u.sess.MasterKey()
 	if !ok {
@@ -72,12 +104,14 @@ func (u *UseCase) ListLocal(ctx context.Context) ([]DecryptedVault, error) {
 	for _, it := range items {
 		vaultKey, err := u.cipher.UnwrapVaultKey(it.WrappedVaultKey, masterKey)
 		if err != nil {
-			return nil, fmt.Errorf("unwrap vault key: %w", err)
+			slog.Warn("vault: unwrap vault key failed for cached vault, skipping", "vault_id", it.ID, "err", err)
+			continue
 		}
 
 		var name string
 		if err := u.cipher.DecryptStruct(vaultKey, nil, it.EncName, &name); err != nil {
-			return nil, fmt.Errorf("decrypt vault name: %w", err)
+			slog.Warn("vault: decrypt cached vault name failed, skipping", "vault_id", it.ID, "err", err)
+			continue
 		}
 
 		u.sess.OpenVault(it.ID, vaultKey)

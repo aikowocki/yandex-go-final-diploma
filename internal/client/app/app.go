@@ -19,7 +19,7 @@ import (
 
 // New собирает все зависимости из уже разобранного конфига и возвращает готовый Container.
 func New(cfg *config.ClientConfig) (*Container, error) {
-	logger.Setup(cfg.LogLevel)
+	logger.SetupWithDir(cfg.LogLevel, cfg.DataDir)
 
 	grpcClient, err := grpcclient.New(cfg.ServerAddr)
 	if err != nil {

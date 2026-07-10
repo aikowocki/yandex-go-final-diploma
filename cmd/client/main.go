@@ -47,6 +47,7 @@ func main() {
 		container.Local,
 		container.GRPC,
 		container.Localizer,
+		container.Config,
 		&cli.BuildInfo{Version: version, Date: formatBuildDate(buildDate)},
 	)
 

@@ -19,6 +19,10 @@ func (u *UseCase) Refresh(ctx context.Context) error {
 		return err
 	}
 
+	if err := u.reconcileAccount(ctx, res.Tokens.UserID); err != nil {
+		return err
+	}
+
 	if err := u.tokens.Save(res.Tokens); err != nil {
 		return fmt.Errorf("save tokens: %w", err)
 	}

@@ -6,6 +6,7 @@ type RegisterParams struct {
 }
 
 type RegisterResult struct {
+	UserID       string
 	AccessToken  string
 	RefreshToken string
 }
@@ -22,6 +23,7 @@ type LoginParams struct {
 }
 
 type AuthResult struct {
+	UserID       string
 	AccessToken  string
 	RefreshToken string
 	EncKDFSalt   []byte

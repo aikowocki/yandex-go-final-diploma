@@ -29,9 +29,10 @@ WHERE s.id = $1 AND v.user_id = $2 AND NOT s.deleted;
 
 -- GetSecretForUpdate — полная строка секрета с блокировкой (SELECT ... FOR UPDATE) для
 -- оптимистичной блокировки внутри транзакции. Возвращает и удалённые (deleted) строки,
--- чтобы отличить «не найдено» от «уже удалено».
+-- чтобы отличить «не найдено» от «уже удалено». blob_ref/blob_size нужны usecase/blob
+-- (DownloadChunked/AttachBlob type-проверка) для type=binary секретов.
 -- name: GetSecretForUpdate :one
-SELECT s.id, s.vault_id, s.type, s.enc_row, s.enc_index, s.enc_payload, s.version, s.deleted
+SELECT s.id, s.vault_id, s.type, s.enc_row, s.enc_index, s.enc_payload, s.blob_ref, s.blob_size, s.version, s.deleted
 FROM secrets s
 JOIN vaults v ON v.id = s.vault_id
 WHERE s.id = $1 AND v.user_id = $2
@@ -58,3 +59,10 @@ RETURNING version;
 UPDATE vaults
 SET version = version + 1, updated_at = now()
 WHERE id = $1;
+
+-- AttachBlob — прописывает blob_ref/blob_size секрету type=binary ПОСЛЕ того как клиент успешно
+-- залил зашифрованный блоб в MinIO.
+UPDATE secrets
+SET blob_ref = $2, blob_size = $3, version = version + 1, updated_at = now()
+WHERE id = $1
+RETURNING version;

@@ -47,6 +47,14 @@ func RenderError(l *clienti18n.Localizer, err error) string {
 		return l.T("err_vault_ambiguous")
 	case errors.Is(err, vaultuc.ErrLocked), errors.Is(err, secretuc.ErrVaultLocked):
 		return l.T("err_locked")
+	case errors.Is(err, secretuc.ErrEmptyTOTPSecret):
+		return l.T("err_empty_totp_secret")
+	case errors.Is(err, secretuc.ErrInvalidOTPAuthURI):
+		return l.T("err_invalid_otpauth_uri")
+	case errors.Is(err, secretuc.ErrIndexTooLarge):
+		return l.T("err_index_too_large")
+	case errors.Is(err, secretuc.ErrEmptyBinaryData):
+		return l.T("err_empty_binary_data")
 	case errors.Is(err, grpcclient.ErrInternal):
 		return l.T("err_internal")
 	default:

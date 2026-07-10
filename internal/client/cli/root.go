@@ -12,6 +12,7 @@ type CLI struct {
 	Secret          SecretCmd          `cmd:"" help:"Manage secrets."`
 	Sync            SyncCmd            `cmd:"" help:"Sync local cache with the server and flush the offline outbox."`
 	Outbox          OutboxCmd          `cmd:"" help:"Inspect the offline change queue (outbox)."`
+	Logs            LogsCmd            `cmd:"" help:"Show client logs (from <data-dir>/client.log)."`
 	Ping            PingCmd            `cmd:"" help:"Check server connectivity."`
 	Version         VersionCmd         `cmd:"" help:"Print client version."`
 }

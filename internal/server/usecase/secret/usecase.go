@@ -15,6 +15,7 @@ type Repository interface {
 	UpdateFields(ctx context.Context, secretID string, encRow, encIndex, encPayload []byte) (int64, error)
 	SoftDelete(ctx context.Context, secretID string) (int64, error)
 	BumpVaultVersion(ctx context.Context, vaultID string) error
+	AttachBlob(ctx context.Context, secretID, blobRef string, blobSize int64) (int64, error)
 }
 
 type VaultOwnership interface {

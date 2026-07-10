@@ -10,6 +10,69 @@ type CreateLoginPasswordInput struct {
 	Note         string
 	CustomFields []secretcontent.KeyValue
 	Password     string
+	OTPCodes     []secretcontent.OTPCode
+}
+
+type CreateTextInput struct {
+	Title        string
+	Tags         []string
+	Note         string
+	CustomFields []secretcontent.KeyValue
+	Body         string
+	OTPCodes     []secretcontent.OTPCode
+}
+
+type CreateBankCardInput struct {
+	Title        string
+	Tags         []string
+	Bank         string
+	Cardholder   string
+	Brand        string
+	Expiry       string
+	Note         string
+	CustomFields []secretcontent.KeyValue
+	PAN          string
+	CVV          string
+	PIN          string
+	OTPCodes     []secretcontent.OTPCode
+}
+
+type CreateTOTPInput struct {
+	Title        string
+	Tags         []string
+	Issuer       string
+	Account      string
+	Note         string
+	CustomFields []secretcontent.KeyValue
+	Secret       string
+	Algo         string
+	Digits       int
+	Period       int
+	OTPCodes     []secretcontent.OTPCode
+}
+
+type TextDetail struct {
+	ID      string
+	Version int64
+	Row     secretcontent.TextRow
+	Index   secretcontent.TextIndex
+	Payload secretcontent.TextPayload
+}
+
+type BankCardDetail struct {
+	ID      string
+	Version int64
+	Row     secretcontent.BankCardRow
+	Index   secretcontent.BankCardIndex
+	Payload secretcontent.BankCardPayload
+}
+
+type TOTPDetail struct {
+	ID      string
+	Version int64
+	Row     secretcontent.TOTPRow
+	Index   secretcontent.TOTPIndex
+	Payload secretcontent.TOTPPayload
 }
 
 type DecryptedRow struct {

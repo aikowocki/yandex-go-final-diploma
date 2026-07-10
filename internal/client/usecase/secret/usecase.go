@@ -1,6 +1,8 @@
 package secret
 
 import (
+	"context"
+
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 )
@@ -32,6 +34,14 @@ func (u *UseCase) vaultKey(vaultID string) ([]byte, error) {
 		return nil, ErrVaultLocked
 	}
 	return vk, nil
+}
+
+func (u *UseCase) LocalVersion(ctx context.Context, secretID string) (version int64, ok bool, err error) {
+	sec, ok, err := u.local.GetSecret(ctx, secretID)
+	if err != nil || !ok {
+		return 0, ok, err
+	}
+	return sec.Version, true, nil
 }
 
 func (u *UseCase) vaultContext(vaultID string) (vaultKey []byte, token string, err error) {

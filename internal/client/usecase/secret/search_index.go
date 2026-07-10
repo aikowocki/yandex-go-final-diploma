@@ -15,10 +15,7 @@ type SearchResult struct {
 	Incomplete bool
 }
 
-// Search ищет секреты папки в локальном кеше. Всегда ищет по Tier 2a (title/username/uri/tags);
-// по Tier 2b (note/custom_fields) — только для секретов, у которых индекс уже догружен (LoadIndexes).
-// Пустой запрос возвращает все строки. Если хотя бы у одного секрета Tier 2b не загружен,
-// результат помечается Incomplete.
+// Search ищет секреты папки в локальном кеше.
 func (u *UseCase) Search(ctx context.Context, vaultID, query string) (SearchResult, error) {
 	if vaultID == "" {
 		return SearchResult{}, ErrEmptyVaultID
@@ -41,19 +38,18 @@ func (u *UseCase) Search(ctx context.Context, vaultID, query string) (SearchResu
 			res.Incomplete = true
 		}
 
-		var row secretcontent.LoginPasswordRow
-		ad := secretAAD(vaultID, it.ID, it.Version, tierRow)
-		if err := u.cipher.DecryptStruct(vaultKey, ad, it.EncRow, &row); err != nil {
+		rowMap, row, err := u.decryptRowGeneric(vaultKey, vaultID, it.ID, it.Version, it.EncRow)
+		if err != nil {
 			return SearchResult{}, err
 		}
 
-		match := q == "" || matchRow(row, q)
+		match := q == "" || matchesQuery(rowMap, q)
 		if !match && it.IndexLoaded {
-			idx, err := u.decryptIndex(vaultKey, vaultID, localSecretView{ID: it.ID, Version: it.Version, EncIndex: it.EncIndex})
+			idxMap, err := u.decryptIndexGeneric(vaultKey, vaultID, it.ID, it.Version, it.EncIndex)
 			if err != nil {
 				return SearchResult{}, err
 			}
-			match = matchIndex(idx, q)
+			match = matchesQuery(idxMap, q)
 		}
 
 		if match {
@@ -63,27 +59,51 @@ func (u *UseCase) Search(ctx context.Context, vaultID, query string) (SearchResu
 	return res, nil
 }
 
-// matchRow ищет подстроку q (в нижнем регистре) по Tier 2a-полям.
-func matchRow(row secretcontent.LoginPasswordRow, q string) bool {
-	if containsFold(row.Title, q) || containsFold(row.Username, q) || containsFold(row.URI, q) {
-		return true
+// decryptRowGeneric расшифровывает Tier 2a в map[string]any.
+func (u *UseCase) decryptRowGeneric(vaultKey []byte, vaultID, secretID string, version int64, encRow []byte) (map[string]any, secretcontent.LoginPasswordRow, error) {
+	var m map[string]any
+	ad := secretAAD(vaultID, secretID, version, tierRow)
+	if err := u.cipher.DecryptStruct(vaultKey, ad, encRow, &m); err != nil {
+		return nil, secretcontent.LoginPasswordRow{}, err
 	}
-	for _, t := range row.Tags {
-		if containsFold(t, q) {
-			return true
-		}
+	var row secretcontent.LoginPasswordRow
+	if err := remarshal(m, &row); err != nil {
+		return nil, secretcontent.LoginPasswordRow{}, err
 	}
-	return false
+	return m, row, nil
 }
 
-// matchIndex ищет подстроку q по Tier 2b-полям (note/custom_fields).
-func matchIndex(idx secretcontent.LoginPasswordIndex, q string) bool {
-	if containsFold(idx.Note, q) {
-		return true
+// decryptIndexGeneric расшифровывает Tier 2b в map[string]any для типонезависимого поиска.
+func (u *UseCase) decryptIndexGeneric(vaultKey []byte, vaultID, secretID string, version int64, encIndex []byte) (map[string]any, error) {
+	if len(encIndex) == 0 {
+		return nil, nil
 	}
-	for _, kv := range idx.CustomFields {
-		if containsFold(kv.Key, q) || containsFold(kv.Value, q) {
-			return true
+	var m map[string]any
+	ad := secretAAD(vaultID, secretID, version, tierIndex)
+	if err := u.cipher.DecryptStruct(vaultKey, ad, encIndex, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// matchesQuery ищет подстроку q (уже в нижнем регистре) среди ЛЮБЫХ строковых значений
+// произвольно вложенной JSON-структуры (map/slice/string) — работает одинаково для всех типов
+// секрета без type-specific кода: tags/custom_fields — массивы, остальные поля — top-level строки.
+func matchesQuery(v any, qLower string) bool {
+	switch val := v.(type) {
+	case string:
+		return containsFold(val, qLower)
+	case map[string]any:
+		for _, vv := range val {
+			if matchesQuery(vv, qLower) {
+				return true
+			}
+		}
+	case []any:
+		for _, vv := range val {
+			if matchesQuery(vv, qLower) {
+				return true
+			}
 		}
 	}
 	return false

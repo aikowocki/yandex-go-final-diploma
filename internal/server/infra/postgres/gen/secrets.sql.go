@@ -67,7 +67,7 @@ func (q *Queries) CreateSecret(ctx context.Context, arg CreateSecretParams) (Cre
 }
 
 const getSecretForUpdate = `-- name: GetSecretForUpdate :one
-SELECT s.id, s.vault_id, s.type, s.enc_row, s.enc_index, s.enc_payload, s.version, s.deleted
+SELECT s.id, s.vault_id, s.type, s.enc_row, s.enc_index, s.enc_payload, s.blob_ref, s.blob_size, s.version, s.deleted
 FROM secrets s
 JOIN vaults v ON v.id = s.vault_id
 WHERE s.id = $1 AND v.user_id = $2
@@ -86,13 +86,16 @@ type GetSecretForUpdateRow struct {
 	EncRow     []byte
 	EncIndex   []byte
 	EncPayload []byte
+	BlobRef    pgtype.Text
+	BlobSize   pgtype.Int8
 	Version    int64
 	Deleted    bool
 }
 
 // GetSecretForUpdate — полная строка секрета с блокировкой (SELECT ... FOR UPDATE) для
 // оптимистичной блокировки внутри транзакции. Возвращает и удалённые (deleted) строки,
-// чтобы отличить «не найдено» от «уже удалено».
+// чтобы отличить «не найдено» от «уже удалено». blob_ref/blob_size нужны usecase/blob
+// (DownloadChunked/AttachBlob type-проверка) для type=binary секретов.
 func (q *Queries) GetSecretForUpdate(ctx context.Context, arg GetSecretForUpdateParams) (GetSecretForUpdateRow, error) {
 	row := q.db.QueryRow(ctx, getSecretForUpdate, arg.ID, arg.UserID)
 	var i GetSecretForUpdateRow
@@ -103,6 +106,8 @@ func (q *Queries) GetSecretForUpdate(ctx context.Context, arg GetSecretForUpdate
 		&i.EncRow,
 		&i.EncIndex,
 		&i.EncPayload,
+		&i.BlobRef,
+		&i.BlobSize,
 		&i.Version,
 		&i.Deleted,
 	)

@@ -19,9 +19,13 @@ import (
 
 // Реальный cipher (cryptoimpl) + mock ServerClient + mock TokenStore + реальная сессия + in-memory localstore.
 func newVaultUC(t *testing.T, server contracts.ServerClient, sess *session.Session) *vault.UseCase {
+	return newVaultUCStore(t, server, sess, newMemStore(t))
+}
+
+func newVaultUCStore(t *testing.T, server contracts.ServerClient, sess *session.Session, local *localstore.Store) *vault.UseCase {
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "tok"}, nil).Maybe()
-	return vault.New(server, cryptoimpl.Crypto{}, store, sess, newMemStore(t))
+	return vault.New(server, cryptoimpl.Crypto{}, store, sess, local)
 }
 
 // newMemStore открывает in-memory localstore и закрывает его по завершении теста.

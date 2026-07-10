@@ -163,6 +163,10 @@ func promptLoginPasswordInput(l *clienti18n.Localizer) (secretuc.CreateLoginPass
 	if err != nil {
 		return secretuc.CreateLoginPasswordInput{}, err
 	}
+	otpCodes, err := promptOTPCodes(l)
+	if err != nil {
+		return secretuc.CreateLoginPasswordInput{}, err
+	}
 	return secretuc.CreateLoginPasswordInput{
 		Title:    title,
 		Username: username,
@@ -170,6 +174,7 @@ func promptLoginPasswordInput(l *clienti18n.Localizer) (secretuc.CreateLoginPass
 		URI:      uri,
 		Tags:     parseTags(tagsRaw),
 		Note:     note,
+		OTPCodes: otpCodes,
 	}, nil
 }
 
@@ -186,6 +191,70 @@ func localSecretVersion(ctx context.Context, secret *secretuc.UseCase, vaultID, 
 		}
 	}
 	return 0, false, nil
+}
+
+// Секретные типы.
+const (
+	textSecretType     = 2
+	bankCardSecretType = 4
+	totpSecretType     = 5
+)
+
+func localTypedVersion(ctx context.Context, secret *secretuc.UseCase, vaultID, id string, _ int) (int64, bool, error) {
+	return secret.LocalVersion(ctx, id)
+}
+
+func resolveGenericConflictInteractive(ctx context.Context, secret *secretuc.UseCase, l *clienti18n.Localizer, conflict *secretuc.GenericConflict) error {
+	for conflict != nil {
+		printGenericConflict(l, conflict)
+
+		choice, err := promptConflictChoice(l)
+		if err != nil {
+			return err
+		}
+
+		next, err := secret.GenericResolveConflict(ctx, conflict, choice)
+		if err != nil {
+			return err
+		}
+		if choice == secretuc.ChoiceServer {
+			fmt.Println(l.T("conflict_resolved_server"))
+			return nil
+		}
+		if next == nil {
+			fmt.Println(l.T("conflict_resolved_mine"))
+			return nil
+		}
+		conflict = next
+	}
+	return nil
+}
+
+func printGenericConflict(l *clienti18n.Localizer, c *secretuc.GenericConflict) {
+	fmt.Println(l.T("conflict_detected"))
+
+	fmt.Println(l.T("conflict_mine_header"))
+	if c.IsDelete {
+		fmt.Println(l.T("conflict_delete_intent"))
+	} else {
+		printFieldMap(c.MineRow)
+		printFieldMap(c.MineIndex)
+		printFieldMap(c.MinePayload)
+	}
+
+	fmt.Println(l.T("conflict_server_header"))
+	printFieldMap(c.ServerRow)
+	printFieldMap(c.ServerIndex)
+	printFieldMap(c.ServerPayload)
+}
+
+func printFieldMap(m map[string]any) {
+	for k, v := range m {
+		if v == nil || v == "" {
+			continue
+		}
+		fmt.Printf("%s: %v\n", k, v)
+	}
 }
 
 // resolveConflictInteractive показывает обе версии и просит пользователя выбрать mine/server,

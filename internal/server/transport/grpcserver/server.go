@@ -10,6 +10,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/interceptor"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/blob"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
@@ -19,31 +20,38 @@ type Server struct {
 	pb.UnimplementedAuthServiceServer
 	pb.UnimplementedVaultServiceServer
 	pb.UnimplementedSecretServiceServer
+	pb.UnimplementedBlobServiceServer
 
 	grpcServer *grpc.Server
 	auth       *auth.UseCase
 	vault      *vault.UseCase
 	secret     *secret.UseCase
+	blob       *blob.UseCase
 }
 
-// New создаёт новый gRPC-сервер с зарегистрированными сервисами.
+// New создаёт новый gRPC-сервер с зарегистрированными сервисами. blobUseCase может быть nil,
+// если сервер запущен без MinIO — в этом случае UploadBlob/DownloadBlob вернут Unimplemented.
 func New(
 	authUseCase *auth.UseCase,
 	vaultUseCase *vault.UseCase,
 	secretUseCase *secret.UseCase,
+	blobUseCase *blob.UseCase,
 	tokenVerifier interceptor.TokenVerifier,
 ) *Server {
 	s := &Server{
 		auth:   authUseCase,
 		vault:  vaultUseCase,
 		secret: secretUseCase,
+		blob:   blobUseCase,
 		grpcServer: grpc.NewServer(
 			grpc.UnaryInterceptor(interceptor.Auth(tokenVerifier)),
+			grpc.StreamInterceptor(interceptor.StreamAuth(tokenVerifier)),
 		),
 	}
 	pb.RegisterAuthServiceServer(s.grpcServer, s)
 	pb.RegisterVaultServiceServer(s.grpcServer, s)
 	pb.RegisterSecretServiceServer(s.grpcServer, s)
+	pb.RegisterBlobServiceServer(s.grpcServer, s)
 	return s
 }
 

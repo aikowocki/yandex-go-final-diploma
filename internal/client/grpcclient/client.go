@@ -16,6 +16,7 @@ type Client struct {
 	auth   pb.AuthServiceClient
 	vault  pb.VaultServiceClient
 	secret pb.SecretServiceClient
+	blob   pb.BlobServiceClient
 }
 
 var _ contracts.ServerClient = (*Client)(nil)
@@ -33,6 +34,7 @@ func New(addr string) (*Client, error) {
 		auth:   pb.NewAuthServiceClient(conn),
 		vault:  pb.NewVaultServiceClient(conn),
 		secret: pb.NewSecretServiceClient(conn),
+		blob:   pb.NewBlobServiceClient(conn),
 	}, nil
 }
 
@@ -62,6 +64,7 @@ func (c *Client) Register(ctx context.Context, login string, loginCredential []b
 	return contracts.Tokens{
 		AccessToken:  resp.GetAccessToken(),
 		RefreshToken: resp.GetRefreshToken(),
+		UserID:       resp.GetUserId(),
 	}, nil
 }
 
@@ -89,6 +92,7 @@ func (c *Client) Login(ctx context.Context, login string, loginCredential []byte
 		Tokens: contracts.Tokens{
 			AccessToken:  resp.GetAccessToken(),
 			RefreshToken: resp.GetRefreshToken(),
+			UserID:       resp.GetUserId(),
 		},
 		EncKDFSalt:   resp.GetEncKdfSalt(),
 		EncKDFParams: resp.GetEncKdfParams(),
@@ -107,6 +111,7 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (contrac
 		Tokens: contracts.Tokens{
 			AccessToken:  resp.GetAccessToken(),
 			RefreshToken: resp.GetRefreshToken(),
+			UserID:       resp.GetUserId(),
 		},
 		EncKDFSalt:   resp.GetEncKdfSalt(),
 		EncKDFParams: resp.GetEncKdfParams(),

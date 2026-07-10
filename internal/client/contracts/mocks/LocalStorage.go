@@ -114,6 +114,53 @@ func (_c *MockLocalStorage_DeleteSecret_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// DeleteVault provides a mock function with given fields: ctx, id
+func (_m *MockLocalStorage) DeleteVault(ctx context.Context, id string) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteVault")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockLocalStorage_DeleteVault_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteVault'
+type MockLocalStorage_DeleteVault_Call struct {
+	*mock.Call
+}
+
+// DeleteVault is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+func (_e *MockLocalStorage_Expecter) DeleteVault(ctx interface{}, id interface{}) *MockLocalStorage_DeleteVault_Call {
+	return &MockLocalStorage_DeleteVault_Call{Call: _e.mock.On("DeleteVault", ctx, id)}
+}
+
+func (_c *MockLocalStorage_DeleteVault_Call) Run(run func(ctx context.Context, id string)) *MockLocalStorage_DeleteVault_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_DeleteVault_Call) Return(_a0 error) *MockLocalStorage_DeleteVault_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockLocalStorage_DeleteVault_Call) RunAndReturn(run func(context.Context, string) error) *MockLocalStorage_DeleteVault_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // EnqueueOutbox provides a mock function with given fields: ctx, e
 func (_m *MockLocalStorage) EnqueueOutbox(ctx context.Context, e contracts.OutboxEntry) (int64, error) {
 	ret := _m.Called(ctx, e)
@@ -1042,6 +1089,52 @@ func (_c *MockLocalStorage_UpsertVault_Call) Return(_a0 error) *MockLocalStorage
 }
 
 func (_c *MockLocalStorage_UpsertVault_Call) RunAndReturn(run func(context.Context, contracts.LocalVault) error) *MockLocalStorage_UpsertVault_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WipeAccountData provides a mock function with given fields: ctx
+func (_m *MockLocalStorage) WipeAccountData(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WipeAccountData")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockLocalStorage_WipeAccountData_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WipeAccountData'
+type MockLocalStorage_WipeAccountData_Call struct {
+	*mock.Call
+}
+
+// WipeAccountData is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockLocalStorage_Expecter) WipeAccountData(ctx interface{}) *MockLocalStorage_WipeAccountData_Call {
+	return &MockLocalStorage_WipeAccountData_Call{Call: _e.mock.On("WipeAccountData", ctx)}
+}
+
+func (_c *MockLocalStorage_WipeAccountData_Call) Run(run func(ctx context.Context)) *MockLocalStorage_WipeAccountData_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_WipeAccountData_Call) Return(_a0 error) *MockLocalStorage_WipeAccountData_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockLocalStorage_WipeAccountData_Call) RunAndReturn(run func(context.Context) error) *MockLocalStorage_WipeAccountData_Call {
 	_c.Call.Return(run)
 	return _c
 }

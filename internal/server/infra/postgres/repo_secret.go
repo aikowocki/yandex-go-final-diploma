@@ -7,6 +7,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/infra/postgres/gen"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // SecretRepo реализует secret.Repository поверх sqlc-запросов.
@@ -72,7 +73,7 @@ func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) 
 		return domain.Secret{}, fmt.Errorf("get secret for update: %w", err)
 	}
 
-	return domain.Secret{
+	sec := domain.Secret{
 		ID:         uuidToString(row.ID),
 		VaultID:    uuidToString(row.VaultID),
 		Type:       domain.SecretType(row.Type),
@@ -81,7 +82,14 @@ func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) 
 		EncPayload: row.EncPayload,
 		Version:    row.Version,
 		Deleted:    row.Deleted,
-	}, nil
+	}
+	if row.BlobRef.Valid {
+		sec.BlobRef = &row.BlobRef.String
+	}
+	if row.BlobSize.Valid {
+		sec.BlobSize = &row.BlobSize.Int64
+	}
+	return sec, nil
 }
 
 // UpdateFields применяет новые шифротексты и инкрементирует версию.
@@ -113,6 +121,24 @@ func (r *SecretRepo) SoftDelete(ctx context.Context, secretID string) (int64, er
 	version, err := r.q(ctx).SoftDeleteSecret(ctx, sid)
 	if err != nil {
 		return 0, fmt.Errorf("soft delete secret: %w", err)
+	}
+	return version, nil
+}
+
+// AttachBlob прописывает blob_ref/blob_size и инкрементирует версию.
+func (r *SecretRepo) AttachBlob(ctx context.Context, secretID, blobRef string, blobSize int64) (int64, error) {
+	sid, err := parseUUID(secretID)
+	if err != nil {
+		return 0, secret.ErrSecretNotFound
+	}
+
+	version, err := r.q(ctx).AttachBlob(ctx, gen.AttachBlobParams{
+		ID:       sid,
+		BlobRef:  pgtype.Text{String: blobRef, Valid: true},
+		BlobSize: pgtype.Int8{Int64: blobSize, Valid: true},
+	})
+	if err != nil {
+		return 0, fmt.Errorf("attach blob: %w", err)
 	}
 	return version, nil
 }

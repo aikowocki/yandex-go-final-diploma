@@ -108,3 +108,22 @@ func (q *Queries) ListVaultsByUser(ctx context.Context, userID pgtype.UUID) ([]L
 	}
 	return items, nil
 }
+
+const vaultBelongsToUser = `-- name: VaultBelongsToUser :one
+SELECT EXISTS (
+    SELECT 1 FROM vaults WHERE id = $1 AND user_id = $2 AND NOT deleted
+)
+`
+
+type VaultBelongsToUserParams struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+}
+
+// VaultBelongsToUser — быстрая проверка владения папкой (для CreateSecret, где join на INSERT недоступен).
+func (q *Queries) VaultBelongsToUser(ctx context.Context, arg VaultBelongsToUserParams) (bool, error) {
+	row := q.db.QueryRow(ctx, vaultBelongsToUser, arg.ID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

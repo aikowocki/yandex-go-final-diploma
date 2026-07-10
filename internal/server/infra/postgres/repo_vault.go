@@ -6,6 +6,7 @@ import (
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/infra/postgres/gen"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
 
@@ -14,7 +15,10 @@ type VaultRepo struct {
 	db *DB
 }
 
-var _ vault.VaultRepository = (*VaultRepo)(nil)
+var (
+	_ vault.VaultRepository = (*VaultRepo)(nil)
+	_ secret.VaultOwnership = (*VaultRepo)(nil)
+)
 
 func NewVaultRepo(db *DB) *VaultRepo {
 	return &VaultRepo{db: db}
@@ -44,6 +48,24 @@ func (r *VaultRepo) Create(ctx context.Context, v domain.Vault) (domain.Vault, e
 	v.CreatedAt = row.CreatedAt.Time
 	v.UpdatedAt = row.UpdatedAt.Time
 	return v, nil
+}
+
+// IsOwner проверяет, принадлежит ли папка пользователю.
+func (r *VaultRepo) IsOwner(ctx context.Context, vaultID, userID string) (bool, error) {
+	vid, err := parseUUID(vaultID)
+	if err != nil {
+		return false, nil
+	}
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return false, fmt.Errorf("is owner: invalid user id: %w", err)
+	}
+
+	owns, err := r.q(ctx).VaultBelongsToUser(ctx, gen.VaultBelongsToUserParams{ID: vid, UserID: uid})
+	if err != nil {
+		return false, fmt.Errorf("is owner: %w", err)
+	}
+	return owns, nil
 }
 
 func (r *VaultRepo) ListByUser(ctx context.Context, userID string) ([]domain.Vault, error) {

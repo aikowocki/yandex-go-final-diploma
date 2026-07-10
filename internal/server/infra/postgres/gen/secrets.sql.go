@@ -51,10 +51,16 @@ func (q *Queries) CreateSecret(ctx context.Context, arg CreateSecretParams) (Cre
 }
 
 const getSecretPayload = `-- name: GetSecretPayload :one
-SELECT id, type, version, enc_payload
-FROM secrets
-WHERE id = $1 AND NOT deleted
+SELECT s.id, s.type, s.version, s.enc_payload
+FROM secrets s
+JOIN vaults v ON v.id = s.vault_id
+WHERE s.id = $1 AND v.user_id = $2 AND NOT s.deleted
 `
+
+type GetSecretPayloadParams struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+}
 
 type GetSecretPayloadRow struct {
 	ID         pgtype.UUID
@@ -64,8 +70,8 @@ type GetSecretPayloadRow struct {
 }
 
 // Tier 3: чувствительный payload одного секрета — грузится лениво, только при просмотре.
-func (q *Queries) GetSecretPayload(ctx context.Context, id pgtype.UUID) (GetSecretPayloadRow, error) {
-	row := q.db.QueryRow(ctx, getSecretPayload, id)
+func (q *Queries) GetSecretPayload(ctx context.Context, arg GetSecretPayloadParams) (GetSecretPayloadRow, error) {
+	row := q.db.QueryRow(ctx, getSecretPayload, arg.ID, arg.UserID)
 	var i GetSecretPayloadRow
 	err := row.Scan(
 		&i.ID,
@@ -77,11 +83,17 @@ func (q *Queries) GetSecretPayload(ctx context.Context, id pgtype.UUID) (GetSecr
 }
 
 const listSecretIndex = `-- name: ListSecretIndex :many
-SELECT id, version, enc_index
-FROM secrets
-WHERE vault_id = $1 AND NOT deleted
-ORDER BY created_at
+SELECT s.id, s.version, s.enc_index
+FROM secrets s
+JOIN vaults v ON v.id = s.vault_id
+WHERE s.vault_id = $1 AND v.user_id = $2 AND NOT s.deleted
+ORDER BY s.created_at
 `
+
+type ListSecretIndexParams struct {
+	VaultID pgtype.UUID
+	UserID  pgtype.UUID
+}
 
 type ListSecretIndexRow struct {
 	ID       pgtype.UUID
@@ -89,9 +101,9 @@ type ListSecretIndexRow struct {
 	EncIndex []byte
 }
 
-// Tier 2b: индексные блобы для фонового расширенного поиска — отдельный запрос, не общий SELECT *.
-func (q *Queries) ListSecretIndex(ctx context.Context, vaultID pgtype.UUID) ([]ListSecretIndexRow, error) {
-	rows, err := q.db.Query(ctx, listSecretIndex, vaultID)
+// Tier 2b: индексные блобы для фонового поиска.
+func (q *Queries) ListSecretIndex(ctx context.Context, arg ListSecretIndexParams) ([]ListSecretIndexRow, error) {
+	rows, err := q.db.Query(ctx, listSecretIndex, arg.VaultID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,11 +123,17 @@ func (q *Queries) ListSecretIndex(ctx context.Context, vaultID pgtype.UUID) ([]L
 }
 
 const listSecretRows = `-- name: ListSecretRows :many
-SELECT id, type, version, enc_row
-FROM secrets
-WHERE vault_id = $1 AND NOT deleted
-ORDER BY created_at
+SELECT s.id, s.type, s.version, s.enc_row
+FROM secrets s
+JOIN vaults v ON v.id = s.vault_id
+WHERE s.vault_id = $1 AND v.user_id = $2 AND NOT s.deleted
+ORDER BY s.created_at
 `
+
+type ListSecretRowsParams struct {
+	VaultID pgtype.UUID
+	UserID  pgtype.UUID
+}
 
 type ListSecretRowsRow struct {
 	ID      pgtype.UUID
@@ -125,8 +143,8 @@ type ListSecretRowsRow struct {
 }
 
 // Tier 2a: строки списка секретов — только enc_row, БЕЗ enc_index/enc_payload.
-func (q *Queries) ListSecretRows(ctx context.Context, vaultID pgtype.UUID) ([]ListSecretRowsRow, error) {
-	rows, err := q.db.Query(ctx, listSecretRows, vaultID)
+func (q *Queries) ListSecretRows(ctx context.Context, arg ListSecretRowsParams) ([]ListSecretRowsRow, error) {
+	rows, err := q.db.Query(ctx, listSecretRows, arg.VaultID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}

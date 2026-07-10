@@ -14,3 +14,9 @@ ORDER BY created_at;
 SELECT id, user_id, wrapped_vault_key, enc_name, version
 FROM vaults
 WHERE id = $1 AND NOT deleted;
+
+-- VaultBelongsToUser — быстрая проверка владения папкой (для CreateSecret, где join на INSERT недоступен).
+-- name: VaultBelongsToUser :one
+SELECT EXISTS (
+    SELECT 1 FROM vaults WHERE id = $1 AND user_id = $2 AND NOT deleted
+);

@@ -23,10 +23,24 @@ var (
 	ErrCiphertextTooShort = errors.New("crypto: ciphertext too short")
 )
 
-// Encrypt шифрует plaintext ключом key (AEAD). Возвращает самодостаточный блоб
-// nonce||ciphertext (ciphertext уже включает Poly1305-тег). Nonce — случайный на каждый
-// вызов, поэтому шифрование недетерминировано.
+// Encrypt шифрует plaintext ключом key (AEAD) без associated data. Возвращает
+// самодостаточный блоб nonce||ciphertext (ciphertext уже включает Poly1305-тег).
+// Nonce — случайный на каждый вызов, поэтому шифрование недетерминировано.
 func Encrypt(key, plaintext []byte) ([]byte, error) {
+	return EncryptWithAD(key, plaintext, nil)
+}
+
+// Decrypt расшифровывает блоб nonce||ciphertext ключом key без associated data.
+func Decrypt(key, blob []byte) ([]byte, error) {
+	return DecryptWithAD(key, blob, nil)
+}
+
+// EncryptWithAD шифрует plaintext ключом key, привязывая шифротекст к associated data ad
+// (AAD не шифруется, но включается в подпись Poly1305). Расшифровка пройдёт только при
+// точном совпадении ad. Используется для anti-tampering/anti-rollback: в ad передаётся
+// детерминированный контекст (например vault_id|secret_id|version). ad=nil эквивалентно
+// шифрованию без контекста.
+func EncryptWithAD(key, plaintext, ad []byte) ([]byte, error) {
 	aead, err := newAEAD(key)
 	if err != nil {
 		return nil, err
@@ -38,12 +52,12 @@ func Encrypt(key, plaintext []byte) ([]byte, error) {
 	}
 
 	// Seal с dst=nonce дописывает ciphertext после nonce → на выходе nonce||ciphertext.
-	return aead.Seal(nonce, nonce, plaintext, nil), nil
+	return aead.Seal(nonce, nonce, plaintext, ad), nil
 }
 
-// Decrypt расшифровывает блоб nonce||ciphertext ключом key. Неверный ключ или
-// повреждённый шифротекст дают ошибку (не панику).
-func Decrypt(key, blob []byte) ([]byte, error) {
+// DecryptWithAD расшифровывает блоб nonce||ciphertext ключом key с проверкой associated data ad.
+// Неверный ключ, повреждённый шифротекст ИЛИ несовпадающая ad дают ошибку (не панику).
+func DecryptWithAD(key, blob, ad []byte) ([]byte, error) {
 	aead, err := newAEAD(key)
 	if err != nil {
 		return nil, err
@@ -54,7 +68,7 @@ func Decrypt(key, blob []byte) ([]byte, error) {
 	}
 
 	nonce, ciphertext := blob[:NonceSize], blob[NonceSize:]
-	plaintext, err := aead.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := aead.Open(nil, nonce, ciphertext, ad)
 	if err != nil {
 		return nil, fmt.Errorf("crypto: decrypt: %w", err)
 	}

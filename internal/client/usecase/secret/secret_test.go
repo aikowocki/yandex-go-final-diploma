@@ -50,13 +50,14 @@ func openVaultSession(t *testing.T, vaultID string) (*session.Session, []byte) {
 func TestCreateLoginPassword_EncryptsTiers(t *testing.T) {
 	sess, vaultKey := openVaultSession(t, "vault-1")
 
+	var gotID string
 	var gotRow, gotPayload []byte
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().
-		CreateSecret(mock.Anything, "tok", "vault-1", int32(1), mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(_ context.Context, _, _ string, _ int32, encRow, _, encPayload []byte) (string, error) {
-			gotRow, gotPayload = encRow, encPayload
-			return "secret-1", nil
+		CreateSecret(mock.Anything, "tok", mock.Anything, "vault-1", int32(1), mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _, secretID, _ string, _ int32, encRow, _, encPayload []byte) error {
+			gotID, gotRow, gotPayload = secretID, encRow, encPayload
+			return nil
 		})
 
 	id, err := newSecretUC(t, server, sess).CreateLoginPassword(context.Background(), "vault-1", secret.CreateLoginPasswordInput{
@@ -65,17 +66,18 @@ func TestCreateLoginPassword_EncryptsTiers(t *testing.T) {
 		Password: "hunter2",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "secret-1", id)
+	assert.NotEmpty(t, id)
+	assert.Equal(t, id, gotID, "клиент генерирует secret_id и шлёт его на сервер")
 
-	// enc_row и enc_payload расшифровываются VaultKey'ом и содержат нужные поля.
+	// enc_row и enc_payload расшифровываются VaultKey'ом с AAD-контекстом (vault|secret|version|tier).
 	c := cryptoimpl.Crypto{}
 	var row secretcontent.LoginPasswordRow
-	require.NoError(t, c.DecryptStruct(vaultKey, gotRow, &row))
+	require.NoError(t, c.DecryptStruct(vaultKey, secret.SecretAAD("vault-1", id, 1, secret.TierRow), gotRow, &row))
 	assert.Equal(t, "GitHub", row.Title)
 	assert.Equal(t, "alice", row.Username)
 
 	var payload secretcontent.LoginPasswordPayload
-	require.NoError(t, c.DecryptStruct(vaultKey, gotPayload, &payload))
+	require.NoError(t, c.DecryptStruct(vaultKey, secret.SecretAAD("vault-1", id, 1, secret.TierPayload), gotPayload, &payload))
 	assert.Equal(t, "hunter2", payload.Password)
 }
 
@@ -101,7 +103,7 @@ func TestListRow_ReadsFromLocalStore(t *testing.T) {
 	sess, vaultKey := openVaultSession(t, "vault-1")
 
 	c := cryptoimpl.Crypto{}
-	encRow, err := c.EncryptStruct(vaultKey, secretcontent.LoginPasswordRow{
+	encRow, err := c.EncryptStruct(vaultKey, secret.SecretAAD("vault-1", "s1", 1, secret.TierRow), secretcontent.LoginPasswordRow{
 		V: secretcontent.LoginPasswordSchemaV1, Title: "GitHub", Username: "alice",
 	})
 	require.NoError(t, err)
@@ -124,7 +126,7 @@ func TestGetPayload_Decrypts(t *testing.T) {
 	sess, vaultKey := openVaultSession(t, "vault-1")
 
 	c := cryptoimpl.Crypto{}
-	encPayload, err := c.EncryptStruct(vaultKey, secretcontent.LoginPasswordPayload{
+	encPayload, err := c.EncryptStruct(vaultKey, secret.SecretAAD("vault-1", "s1", 1, secret.TierPayload), secretcontent.LoginPasswordPayload{
 		V: secretcontent.LoginPasswordSchemaV1, Password: "hunter2",
 	})
 	require.NoError(t, err)

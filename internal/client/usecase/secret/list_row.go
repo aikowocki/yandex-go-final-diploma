@@ -26,7 +26,8 @@ func (u *UseCase) ListRow(ctx context.Context, vaultID string) ([]DecryptedRow, 
 	result := make([]DecryptedRow, 0, len(items))
 	for _, it := range items {
 		var row secretcontent.LoginPasswordRow
-		if err := u.cipher.DecryptStruct(vaultKey, it.EncRow, &row); err != nil {
+		ad := secretAAD(vaultID, it.ID, it.Version, tierRow)
+		if err := u.cipher.DecryptStruct(vaultKey, ad, it.EncRow, &row); err != nil {
 			return nil, fmt.Errorf("decrypt row: %w", err)
 		}
 		result = append(result, DecryptedRow{ID: it.ID, Version: it.Version, Row: row})

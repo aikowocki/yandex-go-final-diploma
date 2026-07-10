@@ -23,7 +23,7 @@ func NewGRPC(cfg *config.ServerConfig, db *postgres.DB) *grpcserver.Server {
 	vaultRepo := postgres.NewVaultRepo(db)
 	authUseCase := auth.New(postgres.NewUserRepo(db), tokens, postgres.NewTxManager(db))
 	vaultUseCase := vault.New(vaultRepo)
-	secretUseCase := secret.New(postgres.NewSecretRepo(db), vaultRepo)
+	secretUseCase := secret.New(postgres.NewSecretRepo(db), vaultRepo, postgres.NewTxManager(db))
 
 	return grpcserver.New(authUseCase, vaultUseCase, secretUseCase, tokens)
 }

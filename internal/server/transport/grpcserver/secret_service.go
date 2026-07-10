@@ -21,6 +21,31 @@ func (s *Server) CreateSecret(ctx context.Context, req *pb.CreateSecretRequest) 
 	return &pb.CreateSecretResponse{SecretId: id}, nil
 }
 
+func (s *Server) UpdateSecret(ctx context.Context, req *pb.UpdateSecretRequest) (*pb.UpdateSecretResponse, error) {
+	userID, ok := interceptor.UserIDFromContext(ctx)
+	if !ok {
+		return nil, errNoUser()
+	}
+
+	version, err := s.secret.UpdateSecret(ctx, mapper.UpdateSecretParams(userID, req))
+	if err != nil {
+		return nil, mapSecretErr(err)
+	}
+	return &pb.UpdateSecretResponse{Version: version}, nil
+}
+
+func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) (*pb.DeleteSecretResponse, error) {
+	userID, ok := interceptor.UserIDFromContext(ctx)
+	if !ok {
+		return nil, errNoUser()
+	}
+
+	if _, err := s.secret.DeleteSecret(ctx, mapper.DeleteSecretParams(userID, req)); err != nil {
+		return nil, mapSecretErr(err)
+	}
+	return &pb.DeleteSecretResponse{}, nil
+}
+
 func (s *Server) ListRow(ctx context.Context, req *pb.ListRowRequest) (*pb.ListRowResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {

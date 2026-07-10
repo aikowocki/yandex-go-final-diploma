@@ -171,6 +171,70 @@ func (_c *MockLocalStorage_EnqueueOutbox_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// GetOutbox provides a mock function with given fields: ctx, id
+func (_m *MockLocalStorage) GetOutbox(ctx context.Context, id int64) (contracts.OutboxEntry, bool, error) {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOutbox")
+	}
+
+	var r0 contracts.OutboxEntry
+	var r1 bool
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) (contracts.OutboxEntry, bool, error)); ok {
+		return rf(ctx, id)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int64) contracts.OutboxEntry); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Get(0).(contracts.OutboxEntry)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int64) bool); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, int64) error); ok {
+		r2 = rf(ctx, id)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
+// MockLocalStorage_GetOutbox_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOutbox'
+type MockLocalStorage_GetOutbox_Call struct {
+	*mock.Call
+}
+
+// GetOutbox is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+func (_e *MockLocalStorage_Expecter) GetOutbox(ctx interface{}, id interface{}) *MockLocalStorage_GetOutbox_Call {
+	return &MockLocalStorage_GetOutbox_Call{Call: _e.mock.On("GetOutbox", ctx, id)}
+}
+
+func (_c *MockLocalStorage_GetOutbox_Call) Run(run func(ctx context.Context, id int64)) *MockLocalStorage_GetOutbox_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_GetOutbox_Call) Return(_a0 contracts.OutboxEntry, _a1 bool, _a2 error) *MockLocalStorage_GetOutbox_Call {
+	_c.Call.Return(_a0, _a1, _a2)
+	return _c
+}
+
+func (_c *MockLocalStorage_GetOutbox_Call) RunAndReturn(run func(context.Context, int64) (contracts.OutboxEntry, bool, error)) *MockLocalStorage_GetOutbox_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSecret provides a mock function with given fields: ctx, id
 func (_m *MockLocalStorage) GetSecret(ctx context.Context, id string) (contracts.LocalSecret, bool, error) {
 	ret := _m.Called(ctx, id)
@@ -413,6 +477,65 @@ func (_c *MockLocalStorage_KVSet_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// ListOutboxByStatus provides a mock function with given fields: ctx, status
+func (_m *MockLocalStorage) ListOutboxByStatus(ctx context.Context, status contracts.OutboxStatus) ([]contracts.OutboxEntry, error) {
+	ret := _m.Called(ctx, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListOutboxByStatus")
+	}
+
+	var r0 []contracts.OutboxEntry
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, contracts.OutboxStatus) ([]contracts.OutboxEntry, error)); ok {
+		return rf(ctx, status)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, contracts.OutboxStatus) []contracts.OutboxEntry); ok {
+		r0 = rf(ctx, status)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]contracts.OutboxEntry)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, contracts.OutboxStatus) error); ok {
+		r1 = rf(ctx, status)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockLocalStorage_ListOutboxByStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListOutboxByStatus'
+type MockLocalStorage_ListOutboxByStatus_Call struct {
+	*mock.Call
+}
+
+// ListOutboxByStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - status contracts.OutboxStatus
+func (_e *MockLocalStorage_Expecter) ListOutboxByStatus(ctx interface{}, status interface{}) *MockLocalStorage_ListOutboxByStatus_Call {
+	return &MockLocalStorage_ListOutboxByStatus_Call{Call: _e.mock.On("ListOutboxByStatus", ctx, status)}
+}
+
+func (_c *MockLocalStorage_ListOutboxByStatus_Call) Run(run func(ctx context.Context, status contracts.OutboxStatus)) *MockLocalStorage_ListOutboxByStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(contracts.OutboxStatus))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_ListOutboxByStatus_Call) Return(_a0 []contracts.OutboxEntry, _a1 error) *MockLocalStorage_ListOutboxByStatus_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockLocalStorage_ListOutboxByStatus_Call) RunAndReturn(run func(context.Context, contracts.OutboxStatus) ([]contracts.OutboxEntry, error)) *MockLocalStorage_ListOutboxByStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListPendingOutbox provides a mock function with given fields: ctx
 func (_m *MockLocalStorage) ListPendingOutbox(ctx context.Context) ([]contracts.OutboxEntry, error) {
 	ret := _m.Called(ctx)
@@ -631,6 +754,103 @@ func (_c *MockLocalStorage_RemoveOutbox_Call) Return(_a0 error) *MockLocalStorag
 }
 
 func (_c *MockLocalStorage_RemoveOutbox_Call) RunAndReturn(run func(context.Context, int64) error) *MockLocalStorage_RemoveOutbox_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetOutboxStatus provides a mock function with given fields: ctx, id, status
+func (_m *MockLocalStorage) SetOutboxStatus(ctx context.Context, id int64, status contracts.OutboxStatus) error {
+	ret := _m.Called(ctx, id, status)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetOutboxStatus")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64, contracts.OutboxStatus) error); ok {
+		r0 = rf(ctx, id, status)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockLocalStorage_SetOutboxStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetOutboxStatus'
+type MockLocalStorage_SetOutboxStatus_Call struct {
+	*mock.Call
+}
+
+// SetOutboxStatus is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+//   - status contracts.OutboxStatus
+func (_e *MockLocalStorage_Expecter) SetOutboxStatus(ctx interface{}, id interface{}, status interface{}) *MockLocalStorage_SetOutboxStatus_Call {
+	return &MockLocalStorage_SetOutboxStatus_Call{Call: _e.mock.On("SetOutboxStatus", ctx, id, status)}
+}
+
+func (_c *MockLocalStorage_SetOutboxStatus_Call) Run(run func(ctx context.Context, id int64, status contracts.OutboxStatus)) *MockLocalStorage_SetOutboxStatus_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int64), args[2].(contracts.OutboxStatus))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_SetOutboxStatus_Call) Return(_a0 error) *MockLocalStorage_SetOutboxStatus_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockLocalStorage_SetOutboxStatus_Call) RunAndReturn(run func(context.Context, int64, contracts.OutboxStatus) error) *MockLocalStorage_SetOutboxStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetSecretIndex provides a mock function with given fields: ctx, id, encIndex, version
+func (_m *MockLocalStorage) SetSecretIndex(ctx context.Context, id string, encIndex []byte, version int64) error {
+	ret := _m.Called(ctx, id, encIndex, version)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetSecretIndex")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, int64) error); ok {
+		r0 = rf(ctx, id, encIndex, version)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockLocalStorage_SetSecretIndex_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetSecretIndex'
+type MockLocalStorage_SetSecretIndex_Call struct {
+	*mock.Call
+}
+
+// SetSecretIndex is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+//   - encIndex []byte
+//   - version int64
+func (_e *MockLocalStorage_Expecter) SetSecretIndex(ctx interface{}, id interface{}, encIndex interface{}, version interface{}) *MockLocalStorage_SetSecretIndex_Call {
+	return &MockLocalStorage_SetSecretIndex_Call{Call: _e.mock.On("SetSecretIndex", ctx, id, encIndex, version)}
+}
+
+func (_c *MockLocalStorage_SetSecretIndex_Call) Run(run func(ctx context.Context, id string, encIndex []byte, version int64)) *MockLocalStorage_SetSecretIndex_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].(int64))
+	})
+	return _c
+}
+
+func (_c *MockLocalStorage_SetSecretIndex_Call) Return(_a0 error) *MockLocalStorage_SetSecretIndex_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockLocalStorage_SetSecretIndex_Call) RunAndReturn(run func(context.Context, string, []byte, int64) error) *MockLocalStorage_SetSecretIndex_Call {
 	_c.Call.Return(run)
 	return _c
 }

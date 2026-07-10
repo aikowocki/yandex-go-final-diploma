@@ -33,7 +33,7 @@ func (u *UseCase) List(ctx context.Context) ([]DecryptedVault, error) {
 		}
 
 		var name string
-		if err := u.cipher.DecryptStruct(vaultKey, it.EncName, &name); err != nil {
+		if err := u.cipher.DecryptStruct(vaultKey, nil, it.EncName, &name); err != nil {
 			return nil, fmt.Errorf("decrypt vault name: %w", err)
 		}
 
@@ -76,7 +76,7 @@ func (u *UseCase) ListLocal(ctx context.Context) ([]DecryptedVault, error) {
 		}
 
 		var name string
-		if err := u.cipher.DecryptStruct(vaultKey, it.EncName, &name); err != nil {
+		if err := u.cipher.DecryptStruct(vaultKey, nil, it.EncName, &name); err != nil {
 			return nil, fmt.Errorf("decrypt vault name: %w", err)
 		}
 

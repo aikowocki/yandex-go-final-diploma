@@ -11,6 +11,7 @@ import (
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts/mocks"
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/grpcclient"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/localstore"
 	syncuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/sync"
 )
@@ -71,26 +72,28 @@ func TestSync_SkipsUnchangedVault(t *testing.T) {
 	require.NoError(t, newSyncUC(t, server, local).Sync(ctx))
 }
 
-// Проигрывание outbox: create-запись отправляется на сервер, temp-id заменяется на серверный.
-func TestReplayOutbox_CreateReconciles(t *testing.T) {
+// Проигрывание outbox: create-запись отправляется на сервер. id стабилен (client-generated),
+// поэтому после успеха просто снимается флаг dirty (без remap временного id).
+func TestReplayOutbox_CreateClearsDirty(t *testing.T) {
 	ctx := context.Background()
 	local := openMem(t)
 
-	// Оффлайн-созданный секрет: временная строка в кеше + запись в outbox.
+	// Оффлайн-созданный секрет: строка в кеше (dirty) + запись в outbox с тем же id.
 	require.NoError(t, local.UpsertSecretRow(ctx, contracts.LocalSecret{
-		ID: "temp-1", VaultID: "v1", Type: 1, EncRow: []byte("row"), Version: 1, Dirty: true,
+		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row"), EncPayload: []byte("pay"),
+		Version: 1, PayloadLoaded: true, Dirty: true,
 	}))
 	body, err := json.Marshal(contracts.OutboxSecretCreate{
-		VaultID: "v1", TempID: "temp-1", Type: 1, EncRow: []byte("row"), EncPayload: []byte("pay"),
+		SecretID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row"), EncPayload: []byte("pay"),
 	})
 	require.NoError(t, err)
-	_, err = local.EnqueueOutbox(ctx, contracts.OutboxEntry{Op: contracts.OutboxOpCreate, Entity: "secret", EntityID: "temp-1", Payload: body})
+	_, err = local.EnqueueOutbox(ctx, contracts.OutboxEntry{Op: contracts.OutboxOpCreate, Entity: "secret", EntityID: "s1", Payload: body})
 	require.NoError(t, err)
 
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().
-		CreateSecret(mock.Anything, "tok", "v1", int32(1), []byte("row"), mock.Anything, []byte("pay")).
-		Return("server-1", nil)
+		CreateSecret(mock.Anything, "tok", "s1", "v1", int32(1), []byte("row"), mock.Anything, []byte("pay")).
+		Return(nil)
 
 	require.NoError(t, newSyncUC(t, server, local).ReplayOutbox(ctx))
 
@@ -99,11 +102,42 @@ func TestReplayOutbox_CreateReconciles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, entries)
 
-	// temp-строка удалена, появилась строка с серверным id.
-	_, ok, _ := local.GetSecret(ctx, "temp-1")
-	assert.False(t, ok)
-	sec, ok, _ := local.GetSecret(ctx, "server-1")
+	// Строка сохранила стабильный id и потеряла dirty.
+	sec, ok, _ := local.GetSecret(ctx, "s1")
 	require.True(t, ok)
 	assert.False(t, sec.Dirty)
 	assert.True(t, sec.PayloadLoaded)
+}
+
+// Проигрывание outbox с конфликтом версий: запись update помечается conflict и НЕ удаляется.
+func TestReplayOutbox_UpdateConflictMarksEntry(t *testing.T) {
+	ctx := context.Background()
+	local := openMem(t)
+
+	require.NoError(t, local.UpsertSecretRow(ctx, contracts.LocalSecret{
+		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row2"), Version: 2, Dirty: true,
+	}))
+	body, err := json.Marshal(contracts.OutboxSecretUpdate{
+		SecretID: "s1", VaultID: "v1", BaseVersion: 1, Type: 1, EncRow: []byte("row2"), EncIndex: []byte("idx"), EncPayload: []byte("pay"),
+	})
+	require.NoError(t, err)
+	id, err := local.EnqueueOutbox(ctx, contracts.OutboxEntry{Op: contracts.OutboxOpUpdate, Entity: "secret", EntityID: "s1", BaseVersion: 1, Payload: body})
+	require.NoError(t, err)
+
+	server := mocks.NewMockServerClient(t)
+	server.EXPECT().
+		UpdateSecret(mock.Anything, "tok", "s1", int64(1), mock.Anything, mock.Anything, mock.Anything).
+		Return(int64(0), &grpcclient.ConflictError{Server: contracts.ServerSecret{ID: "s1", Version: 5}})
+
+	require.NoError(t, newSyncUC(t, server, local).ReplayOutbox(ctx))
+
+	// Запись осталась, но помечена conflict.
+	pending, err := local.ListPendingOutbox(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, pending, "conflict-запись не должна быть pending")
+
+	entry, ok, err := local.GetOutbox(ctx, id)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, contracts.OutboxStatusConflict, entry.Status)
 }

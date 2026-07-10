@@ -163,19 +163,50 @@ func (c *Client) CheckFreshness(ctx context.Context, accessToken string) ([]cont
 
 // --- SecretService ---
 
-func (c *Client) CreateSecret(ctx context.Context, accessToken, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) (string, error) {
+func (c *Client) CreateSecret(ctx context.Context, accessToken, secretID, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) error {
 	ctx = withBearer(ctx, accessToken)
-	resp, err := c.secret.CreateSecret(ctx, &pb.CreateSecretRequest{
+	_, err := c.secret.CreateSecret(ctx, &pb.CreateSecretRequest{
+		SecretId:   secretID,
 		VaultId:    vaultID,
 		Type:       pb.SecretType(secretType),
 		EncRow:     encRow,
 		EncIndex:   encIndex,
 		EncPayload: encPayload,
 	})
+	return mapErr(err)
+}
+
+func (c *Client) UpdateSecret(ctx context.Context, accessToken, secretID string, baseVersion int64, encRow, encIndex, encPayload []byte) (int64, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.secret.UpdateSecret(ctx, &pb.UpdateSecretRequest{
+		SecretId:    secretID,
+		BaseVersion: baseVersion,
+		EncRow:      encRow,
+		EncIndex:    encIndex,
+		EncPayload:  encPayload,
+	})
 	if err != nil {
-		return "", mapErr(err)
+		if conflict := conflictFromStatus(err); conflict != nil {
+			return 0, conflict
+		}
+		return 0, mapErr(err)
 	}
-	return resp.GetSecretId(), nil
+	return resp.GetVersion(), nil
+}
+
+func (c *Client) DeleteSecret(ctx context.Context, accessToken, secretID string, baseVersion int64) error {
+	ctx = withBearer(ctx, accessToken)
+	_, err := c.secret.DeleteSecret(ctx, &pb.DeleteSecretRequest{
+		SecretId:    secretID,
+		BaseVersion: baseVersion,
+	})
+	if err != nil {
+		if conflict := conflictFromStatus(err); conflict != nil {
+			return conflict
+		}
+		return mapErr(err)
+	}
+	return nil
 }
 
 func (c *Client) ListSecretRows(ctx context.Context, accessToken, vaultID string) ([]contracts.SecretRowItem, error) {

@@ -16,6 +16,6 @@ type Cipher interface {
 	GenerateVaultKey() ([]byte, error)
 	WrapVaultKey(vaultKey, masterKey []byte) (wrapped []byte, err error)
 	UnwrapVaultKey(wrapped, masterKey []byte) (vaultKey []byte, err error)
-	EncryptStruct(key []byte, value any) ([]byte, error)
-	DecryptStruct(key, blob []byte, value any) error
+	EncryptStruct(key, ad []byte, value any) ([]byte, error)
+	DecryptStruct(key, ad, blob []byte, value any) error
 }

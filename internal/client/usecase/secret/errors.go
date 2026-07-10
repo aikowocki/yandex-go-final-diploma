@@ -8,4 +8,6 @@ var (
 	ErrEmptyVaultID  = errors.New("secret: vault id must not be empty")
 	ErrEmptySecretID = errors.New("secret: secret id must not be empty")
 	ErrEmptyTitle    = errors.New("secret: title must not be empty")
+	ErrNilConflict   = errors.New("secret: nil conflict")
+	ErrUnknownChoice = errors.New("secret: unknown conflict choice")
 )

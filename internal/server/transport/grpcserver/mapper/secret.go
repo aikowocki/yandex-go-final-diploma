@@ -10,10 +10,42 @@ func CreateSecretParams(userID string, req *pb.CreateSecretRequest) secret.Creat
 	return secret.CreateParams{
 		UserID:     userID,
 		VaultID:    req.GetVaultId(),
+		SecretID:   req.GetSecretId(),
 		Type:       domain.SecretType(req.GetType()),
 		EncRow:     req.GetEncRow(),
 		EncIndex:   req.GetEncIndex(),
 		EncPayload: req.GetEncPayload(),
+	}
+}
+
+func UpdateSecretParams(userID string, req *pb.UpdateSecretRequest) secret.UpdateParams {
+	return secret.UpdateParams{
+		UserID:      userID,
+		SecretID:    req.GetSecretId(),
+		BaseVersion: req.GetBaseVersion(),
+		EncRow:      req.GetEncRow(),
+		EncIndex:    req.GetEncIndex(),
+		EncPayload:  req.GetEncPayload(),
+	}
+}
+
+func DeleteSecretParams(userID string, req *pb.DeleteSecretRequest) secret.DeleteParams {
+	return secret.DeleteParams{
+		UserID:      userID,
+		SecretID:    req.GetSecretId(),
+		BaseVersion: req.GetBaseVersion(),
+	}
+}
+
+// SecretConflictDetail строит proto-деталь конфликта из полной серверной версии секрета.
+func SecretConflictDetail(s domain.Secret) *pb.SecretConflict {
+	return &pb.SecretConflict{
+		SecretId:   s.ID,
+		Type:       pb.SecretType(s.Type),
+		Version:    s.Version,
+		EncRow:     s.EncRow,
+		EncIndex:   s.EncIndex,
+		EncPayload: s.EncPayload,
 	}
 }
 

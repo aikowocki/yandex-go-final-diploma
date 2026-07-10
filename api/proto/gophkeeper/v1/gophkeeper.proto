@@ -23,6 +23,8 @@ service VaultService {
 // SecretService — секреты по тирам.
 service SecretService {
   rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse);
+  rpc UpdateSecret(UpdateSecretRequest) returns (UpdateSecretResponse); // оптимистичная блокировка по base_version
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse); // soft-delete по base_version
   rpc ListRow(ListRowRequest) returns (ListRowResponse);       // Tier 2a
   rpc ListIndex(ListIndexRequest) returns (ListIndexResponse); // Tier 2b
   rpc GetPayload(GetPayloadRequest) returns (GetPayloadResponse); // Tier 3
@@ -79,10 +81,41 @@ message CreateSecretRequest {
   bytes enc_row = 3;
   bytes enc_index = 4;
   bytes enc_payload = 5; // может быть пустым
+  string secret_id = 6;  // UUID генерирует клиент (нужен для AAD-привязки шифротекста)
 }
 
 message CreateSecretResponse {
   string secret_id = 1;
+}
+
+message UpdateSecretRequest {
+  string secret_id = 1;
+  int64 base_version = 2; // версия, от которой клиент отталкивается (оптимистичная блокировка)
+  bytes enc_row = 3;
+  bytes enc_index = 4;
+  bytes enc_payload = 5;
+}
+
+message UpdateSecretResponse {
+  int64 version = 1; // новая версия после успешного обновления
+}
+
+message DeleteSecretRequest {
+  string secret_id = 1;
+  int64 base_version = 2;
+}
+
+message DeleteSecretResponse {}
+
+// SecretConflict — деталь gRPC-статуса Aborted при конфликте версий: полная актуальная
+// серверная версия секрета (все три тира), чтобы клиент показал её без отдельного запроса.
+message SecretConflict {
+  string secret_id = 1;
+  SecretType type = 2;
+  int64 version = 3;
+  bytes enc_row = 4;
+  bytes enc_index = 5;
+  bytes enc_payload = 6;
 }
 
 message ListRowRequest {

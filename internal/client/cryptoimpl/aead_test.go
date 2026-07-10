@@ -59,11 +59,11 @@ func TestEncryptDecryptStruct_RoundTrip(t *testing.T) {
 	key := mustKey(t)
 	in := loginPayload{V: 1, Username: "alice", Password: "hunter2"}
 
-	blob, err := c.EncryptStruct(key, in)
+	blob, err := c.EncryptStruct(key, nil, in)
 	require.NoError(t, err)
 
 	var out loginPayload
-	require.NoError(t, c.DecryptStruct(key, blob, &out))
+	require.NoError(t, c.DecryptStruct(key, nil, blob, &out))
 	assert.Equal(t, in, out)
 }
 
@@ -71,11 +71,11 @@ func TestDecryptStruct_WrongKeyFails(t *testing.T) {
 	t.Parallel()
 
 	c := cryptoimpl.Crypto{}
-	blob, err := c.EncryptStruct(mustKey(t), loginPayload{V: 1, Username: "a"})
+	blob, err := c.EncryptStruct(mustKey(t), nil, loginPayload{V: 1, Username: "a"})
 	require.NoError(t, err)
 
 	var out loginPayload
-	err = c.DecryptStruct(mustKey(t), blob, &out)
+	err = c.DecryptStruct(mustKey(t), nil, blob, &out)
 	require.Error(t, err, "decrypt with wrong key must fail, not panic")
 }
 
@@ -84,11 +84,11 @@ func TestDecryptStruct_TamperedBlobFails(t *testing.T) {
 
 	c := cryptoimpl.Crypto{}
 	key := mustKey(t)
-	blob, err := c.EncryptStruct(key, loginPayload{V: 1, Username: "a"})
+	blob, err := c.EncryptStruct(key, nil, loginPayload{V: 1, Username: "a"})
 	require.NoError(t, err)
 
 	blob[len(blob)-1] ^= 0xff
 
 	var out loginPayload
-	require.Error(t, c.DecryptStruct(key, blob, &out))
+	require.Error(t, c.DecryptStruct(key, nil, blob, &out))
 }

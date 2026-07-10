@@ -46,6 +46,17 @@ type SecretPayloadItem struct {
 	EncPayload []byte
 }
 
+// ServerSecret — полная серверная версия секрета (все три тира), которую сервер возвращает
+// в деталях конфликта. Клиент расшифровывает её, чтобы показать «серверную карточку».
+type ServerSecret struct {
+	ID         string
+	Type       int32
+	Version    int64
+	EncRow     []byte
+	EncIndex   []byte
+	EncPayload []byte
+}
+
 type ServerClient interface {
 	Register(ctx context.Context, login string, loginCredential []byte) (Tokens, error)
 	SetupEncryption(ctx context.Context, accessToken string, encKDFSalt, encKDFParams []byte) error
@@ -56,7 +67,13 @@ type ServerClient interface {
 	ListVaults(ctx context.Context, accessToken string) ([]VaultItem, error)
 	CheckFreshness(ctx context.Context, accessToken string) ([]VaultVersion, error)
 
-	CreateSecret(ctx context.Context, accessToken, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) (secretID string, err error)
+	// CreateSecret создаёт секрет с client-generated secretID (нужен для AAD).
+	CreateSecret(ctx context.Context, accessToken, secretID, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) error
+	// UpdateSecret обновляет секрет с оптимистичной блокировкой. При конфликте версий
+	// возвращает *ConflictError (в grpcclient) с актуальной серверной версией.
+	UpdateSecret(ctx context.Context, accessToken, secretID string, baseVersion int64, encRow, encIndex, encPayload []byte) (newVersion int64, err error)
+	// DeleteSecret выполняет soft-delete с оптимистичной блокировкой; при конфликте — *ConflictError.
+	DeleteSecret(ctx context.Context, accessToken, secretID string, baseVersion int64) error
 	ListSecretRows(ctx context.Context, accessToken, vaultID string) ([]SecretRowItem, error)
 	ListSecretIndex(ctx context.Context, accessToken, vaultID string) ([]SecretIndexItem, error)
 	GetSecretPayload(ctx context.Context, accessToken, secretID string) (SecretPayloadItem, error)

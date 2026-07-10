@@ -5,10 +5,26 @@ import "github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 type CreateParams struct {
 	UserID     string
 	VaultID    string
+	SecretID   string // UUID генерируется клиентом
 	Type       domain.SecretType
 	EncRow     []byte
 	EncIndex   []byte
 	EncPayload []byte
+}
+
+type UpdateParams struct {
+	UserID      string
+	SecretID    string
+	BaseVersion int64
+	EncRow      []byte
+	EncIndex    []byte
+	EncPayload  []byte
+}
+
+type DeleteParams struct {
+	UserID      string
+	SecretID    string
+	BaseVersion int64
 }
 
 type Row struct {

@@ -7,32 +7,57 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
 )
 
-// DecryptedIndex — расшифрованный Tier 2b-индекс секрета (для фонового поиска).
-type DecryptedIndex struct {
-	ID      string
-	Version int64
-	Index   secretcontent.LoginPasswordIndex
-}
-
-// ListIndex возвращает расшифрованные Tier 2b-индексы секретов папки.
-func (u *UseCase) ListIndex(ctx context.Context, vaultID string) ([]DecryptedIndex, error) {
-	vaultKey, token, err := u.vaultContext(vaultID)
+// LoadIndexes догружает Tier 2b (enc_index) для папки с сервера и кеширует его в localstore
+// (index_loaded=1). Предназначена для фонового вызова (отдельная горутина) после того как
+// Tier 2a (строки списка) уже отображён: расширяет поиск на note/custom_fields. Идемпотентна.
+// Секреты с локальными несинхронизированными изменениями (dirty) пропускаются, чтобы не
+// затереть их более старым серверным индексом.
+func (u *UseCase) LoadIndexes(ctx context.Context, vaultID string) error {
+	if vaultID == "" {
+		return ErrEmptyVaultID
+	}
+	token, err := u.accessToken()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	items, err := u.server.ListSecretIndex(ctx, token, vaultID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	result := make([]DecryptedIndex, 0, len(items))
 	for _, it := range items {
-		var idx secretcontent.LoginPasswordIndex
-		if err := u.cipher.DecryptStruct(vaultKey, it.EncIndex, &idx); err != nil {
-			return nil, fmt.Errorf("decrypt index: %w", err)
+		local, ok, err := u.local.GetSecret(ctx, it.ID)
+		if err != nil {
+			return err
 		}
-		result = append(result, DecryptedIndex{ID: it.ID, Version: it.Version, Index: idx})
+		// Кешируем индекс только для уже известных (через Tier 2a) и не-dirty секретов.
+		if !ok || local.Dirty || local.IndexLoaded {
+			continue
+		}
+		if err := u.local.SetSecretIndex(ctx, it.ID, it.EncIndex, it.Version); err != nil {
+			return err
+		}
 	}
-	return result, nil
+	return nil
+}
+
+// decryptIndex расшифровывает Tier 2b-индекс из локального кеша для одного секрета.
+func (u *UseCase) decryptIndex(vaultKey []byte, vaultID string, sec localSecretView) (secretcontent.LoginPasswordIndex, error) {
+	var idx secretcontent.LoginPasswordIndex
+	if len(sec.EncIndex) == 0 {
+		return idx, nil
+	}
+	ad := secretAAD(vaultID, sec.ID, sec.Version, tierIndex)
+	if err := u.cipher.DecryptStruct(vaultKey, ad, sec.EncIndex, &idx); err != nil {
+		return idx, fmt.Errorf("decrypt index: %w", err)
+	}
+	return idx, nil
+}
+
+// localSecretView — минимальная проекция локального секрета для расшифровки индекса.
+type localSecretView struct {
+	ID       string
+	Version  int64
+	EncIndex []byte
 }

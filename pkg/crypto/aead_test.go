@@ -129,3 +129,62 @@ func TestUnwrapKey_WrongKEKFails(t *testing.T) {
 	_, err = crypto.UnwrapKey(mustKey(t), wrapped)
 	require.Error(t, err)
 }
+
+// TestEncryptDecryptWithAD_RoundTrip: расшифровка с той же AD проходит.
+func TestEncryptDecryptWithAD_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	key := mustKey(t)
+	plaintext := []byte("secret bound to context")
+	ad := []byte("vault-1|secret-1|v3")
+
+	blob, err := crypto.EncryptWithAD(key, plaintext, ad)
+	require.NoError(t, err)
+
+	got, err := crypto.DecryptWithAD(key, blob, ad)
+	require.NoError(t, err)
+	assert.Equal(t, plaintext, got)
+}
+
+// TestDecryptWithAD_WrongADFails: подмена контекста (другой secret_id/version) ломает расшифровку.
+func TestDecryptWithAD_WrongADFails(t *testing.T) {
+	t.Parallel()
+
+	key := mustKey(t)
+	blob, err := crypto.EncryptWithAD(key, []byte("secret"), []byte("vault-1|secret-1|v3"))
+	require.NoError(t, err)
+
+	// Другой secret_id.
+	_, err = crypto.DecryptWithAD(key, blob, []byte("vault-1|secret-2|v3"))
+	require.Error(t, err, "decrypt with a different secret_id in AD must fail")
+
+	// Откат версии.
+	_, err = crypto.DecryptWithAD(key, blob, []byte("vault-1|secret-1|v2"))
+	require.Error(t, err, "decrypt with a rolled-back version in AD must fail")
+}
+
+// TestDecryptWithAD_MissingADFails: блоб зашифрован с AD, расшифровка без AD не проходит.
+func TestDecryptWithAD_MissingADFails(t *testing.T) {
+	t.Parallel()
+
+	key := mustKey(t)
+	ad := []byte("vault-1|secret-1|v3")
+	blob, err := crypto.EncryptWithAD(key, []byte("secret"), ad)
+	require.NoError(t, err)
+
+	_, err = crypto.Decrypt(key, blob)
+	require.Error(t, err, "AD-bound ciphertext must not decrypt without AD")
+}
+
+// TestEncrypt_NilADEqualsEmptyAD: Encrypt == EncryptWithAD(..., nil) по совместимости.
+func TestEncrypt_NilADEqualsEmptyAD(t *testing.T) {
+	t.Parallel()
+
+	key := mustKey(t)
+	blob, err := crypto.Encrypt(key, []byte("secret"))
+	require.NoError(t, err)
+
+	got, err := crypto.DecryptWithAD(key, blob, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("secret"), got)
+}

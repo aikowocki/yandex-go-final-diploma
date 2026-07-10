@@ -11,13 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const bumpVaultVersion = `-- name: BumpVaultVersion :exec
+UPDATE vaults
+SET version = version + 1, updated_at = now()
+WHERE id = $1
+`
+
+// BumpVaultVersion — инкрементирует версию папки. Вызывается при любом изменении секретов
+// внутри папки, чтобы CheckFreshness увидел изменение и другие устройства подтянули данные.
+func (q *Queries) BumpVaultVersion(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, bumpVaultVersion, id)
+	return err
+}
+
 const createSecret = `-- name: CreateSecret :one
-INSERT INTO secrets (vault_id, type, enc_row, enc_index, enc_payload)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO secrets (id, vault_id, type, enc_row, enc_index, enc_payload)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, version, created_at, updated_at
 `
 
 type CreateSecretParams struct {
+	ID         pgtype.UUID
 	VaultID    pgtype.UUID
 	Type       int16
 	EncRow     []byte
@@ -32,8 +46,10 @@ type CreateSecretRow struct {
 	UpdatedAt pgtype.Timestamptz
 }
 
+// id генерирует клиент (нужен для AAD-привязки шифротекста ещё до отправки).
 func (q *Queries) CreateSecret(ctx context.Context, arg CreateSecretParams) (CreateSecretRow, error) {
 	row := q.db.QueryRow(ctx, createSecret,
+		arg.ID,
 		arg.VaultID,
 		arg.Type,
 		arg.EncRow,
@@ -46,6 +62,49 @@ func (q *Queries) CreateSecret(ctx context.Context, arg CreateSecretParams) (Cre
 		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSecretForUpdate = `-- name: GetSecretForUpdate :one
+SELECT s.id, s.vault_id, s.type, s.enc_row, s.enc_index, s.enc_payload, s.version, s.deleted
+FROM secrets s
+JOIN vaults v ON v.id = s.vault_id
+WHERE s.id = $1 AND v.user_id = $2
+FOR UPDATE OF s
+`
+
+type GetSecretForUpdateParams struct {
+	ID     pgtype.UUID
+	UserID pgtype.UUID
+}
+
+type GetSecretForUpdateRow struct {
+	ID         pgtype.UUID
+	VaultID    pgtype.UUID
+	Type       int16
+	EncRow     []byte
+	EncIndex   []byte
+	EncPayload []byte
+	Version    int64
+	Deleted    bool
+}
+
+// GetSecretForUpdate — полная строка секрета с блокировкой (SELECT ... FOR UPDATE) для
+// оптимистичной блокировки внутри транзакции. Возвращает и удалённые (deleted) строки,
+// чтобы отличить «не найдено» от «уже удалено».
+func (q *Queries) GetSecretForUpdate(ctx context.Context, arg GetSecretForUpdateParams) (GetSecretForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getSecretForUpdate, arg.ID, arg.UserID)
+	var i GetSecretForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.VaultID,
+		&i.Type,
+		&i.EncRow,
+		&i.EncIndex,
+		&i.EncPayload,
+		&i.Version,
+		&i.Deleted,
 	)
 	return i, err
 }
@@ -166,4 +225,47 @@ func (q *Queries) ListSecretRows(ctx context.Context, arg ListSecretRowsParams) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const softDeleteSecret = `-- name: SoftDeleteSecret :one
+UPDATE secrets
+SET deleted = true, version = version + 1, updated_at = now()
+WHERE id = $1
+RETURNING version
+`
+
+// SoftDeleteSecret — помечает секрет удалённым (soft-delete) и инкрементирует версию.
+func (q *Queries) SoftDeleteSecret(ctx context.Context, id pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, softDeleteSecret, id)
+	var version int64
+	err := row.Scan(&version)
+	return version, err
+}
+
+const updateSecretFields = `-- name: UpdateSecretFields :one
+UPDATE secrets
+SET enc_row = $2, enc_index = $3, enc_payload = $4, version = version + 1, updated_at = now()
+WHERE id = $1
+RETURNING version
+`
+
+type UpdateSecretFieldsParams struct {
+	ID         pgtype.UUID
+	EncRow     []byte
+	EncIndex   []byte
+	EncPayload []byte
+}
+
+// UpdateSecretFields — применяет новые шифротексты и инкрементирует версию.
+// Вызывается только после проверки base_version под блокировкой строки.
+func (q *Queries) UpdateSecretFields(ctx context.Context, arg UpdateSecretFieldsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, updateSecretFields,
+		arg.ID,
+		arg.EncRow,
+		arg.EncIndex,
+		arg.EncPayload,
+	)
+	var version int64
+	err := row.Scan(&version)
+	return version, err
 }

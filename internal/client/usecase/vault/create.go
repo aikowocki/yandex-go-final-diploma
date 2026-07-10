@@ -29,7 +29,7 @@ func (u *UseCase) Create(ctx context.Context, name string) (string, error) {
 		return "", fmt.Errorf("wrap vault key: %w", err)
 	}
 
-	encName, err := u.cipher.EncryptStruct(vaultKey, name)
+	encName, err := u.cipher.EncryptStruct(vaultKey, nil, name)
 	if err != nil {
 		return "", fmt.Errorf("encrypt name: %w", err)
 	}

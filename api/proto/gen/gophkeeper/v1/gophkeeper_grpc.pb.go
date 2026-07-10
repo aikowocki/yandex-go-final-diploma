@@ -460,6 +460,8 @@ var VaultService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	SecretService_CreateSecret_FullMethodName = "/gophkeeper.v1.SecretService/CreateSecret"
+	SecretService_UpdateSecret_FullMethodName = "/gophkeeper.v1.SecretService/UpdateSecret"
+	SecretService_DeleteSecret_FullMethodName = "/gophkeeper.v1.SecretService/DeleteSecret"
 	SecretService_ListRow_FullMethodName      = "/gophkeeper.v1.SecretService/ListRow"
 	SecretService_ListIndex_FullMethodName    = "/gophkeeper.v1.SecretService/ListIndex"
 	SecretService_GetPayload_FullMethodName   = "/gophkeeper.v1.SecretService/GetPayload"
@@ -472,6 +474,8 @@ const (
 // SecretService — секреты по тирам.
 type SecretServiceClient interface {
 	CreateSecret(ctx context.Context, in *CreateSecretRequest, opts ...grpc.CallOption) (*CreateSecretResponse, error)
+	UpdateSecret(ctx context.Context, in *UpdateSecretRequest, opts ...grpc.CallOption) (*UpdateSecretResponse, error)
+	DeleteSecret(ctx context.Context, in *DeleteSecretRequest, opts ...grpc.CallOption) (*DeleteSecretResponse, error)
 	ListRow(ctx context.Context, in *ListRowRequest, opts ...grpc.CallOption) (*ListRowResponse, error)
 	ListIndex(ctx context.Context, in *ListIndexRequest, opts ...grpc.CallOption) (*ListIndexResponse, error)
 	GetPayload(ctx context.Context, in *GetPayloadRequest, opts ...grpc.CallOption) (*GetPayloadResponse, error)
@@ -489,6 +493,26 @@ func (c *secretServiceClient) CreateSecret(ctx context.Context, in *CreateSecret
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateSecretResponse)
 	err := c.cc.Invoke(ctx, SecretService_CreateSecret_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretServiceClient) UpdateSecret(ctx context.Context, in *UpdateSecretRequest, opts ...grpc.CallOption) (*UpdateSecretResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateSecretResponse)
+	err := c.cc.Invoke(ctx, SecretService_UpdateSecret_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *secretServiceClient) DeleteSecret(ctx context.Context, in *DeleteSecretRequest, opts ...grpc.CallOption) (*DeleteSecretResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSecretResponse)
+	err := c.cc.Invoke(ctx, SecretService_DeleteSecret_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +556,8 @@ func (c *secretServiceClient) GetPayload(ctx context.Context, in *GetPayloadRequ
 // SecretService — секреты по тирам.
 type SecretServiceServer interface {
 	CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error)
+	UpdateSecret(context.Context, *UpdateSecretRequest) (*UpdateSecretResponse, error)
+	DeleteSecret(context.Context, *DeleteSecretRequest) (*DeleteSecretResponse, error)
 	ListRow(context.Context, *ListRowRequest) (*ListRowResponse, error)
 	ListIndex(context.Context, *ListIndexRequest) (*ListIndexResponse, error)
 	GetPayload(context.Context, *GetPayloadRequest) (*GetPayloadResponse, error)
@@ -547,6 +573,12 @@ type UnimplementedSecretServiceServer struct{}
 
 func (UnimplementedSecretServiceServer) CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateSecret not implemented")
+}
+func (UnimplementedSecretServiceServer) UpdateSecret(context.Context, *UpdateSecretRequest) (*UpdateSecretResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateSecret not implemented")
+}
+func (UnimplementedSecretServiceServer) DeleteSecret(context.Context, *DeleteSecretRequest) (*DeleteSecretResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSecret not implemented")
 }
 func (UnimplementedSecretServiceServer) ListRow(context.Context, *ListRowRequest) (*ListRowResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRow not implemented")
@@ -592,6 +624,42 @@ func _SecretService_CreateSecret_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SecretServiceServer).CreateSecret(ctx, req.(*CreateSecretRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretService_UpdateSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSecretRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).UpdateSecret(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_UpdateSecret_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).UpdateSecret(ctx, req.(*UpdateSecretRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SecretService_DeleteSecret_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSecretRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SecretServiceServer).DeleteSecret(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SecretService_DeleteSecret_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SecretServiceServer).DeleteSecret(ctx, req.(*DeleteSecretRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -660,6 +728,14 @@ var SecretService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSecret",
 			Handler:    _SecretService_CreateSecret_Handler,
+		},
+		{
+			MethodName: "UpdateSecret",
+			Handler:    _SecretService_UpdateSecret_Handler,
+		},
+		{
+			MethodName: "DeleteSecret",
+			Handler:    _SecretService_DeleteSecret_Handler,
 		},
 		{
 			MethodName: "ListRow",

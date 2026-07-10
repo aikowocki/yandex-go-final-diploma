@@ -81,32 +81,22 @@ func (_c *MockServerClient_CheckFreshness_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
-// CreateSecret provides a mock function with given fields: ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload
-func (_m *MockServerClient) CreateSecret(ctx context.Context, accessToken string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte) (string, error) {
-	ret := _m.Called(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+// CreateSecret provides a mock function with given fields: ctx, accessToken, secretID, vaultID, secretType, encRow, encIndex, encPayload
+func (_m *MockServerClient) CreateSecret(ctx context.Context, accessToken string, secretID string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte) error {
+	ret := _m.Called(ctx, accessToken, secretID, vaultID, secretType, encRow, encIndex, encPayload)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateSecret")
 	}
 
-	var r0 string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32, []byte, []byte, []byte) (string, error)); ok {
-		return rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, int32, []byte, []byte, []byte) string); ok {
-		r0 = rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, int32, []byte, []byte, []byte) error); ok {
+		r0 = rf(ctx, accessToken, secretID, vaultID, secretType, encRow, encIndex, encPayload)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Error(0)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, int32, []byte, []byte, []byte) error); ok {
-		r1 = rf(ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // MockServerClient_CreateSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateSecret'
@@ -117,28 +107,29 @@ type MockServerClient_CreateSecret_Call struct {
 // CreateSecret is a helper method to define mock.On call
 //   - ctx context.Context
 //   - accessToken string
+//   - secretID string
 //   - vaultID string
 //   - secretType int32
 //   - encRow []byte
 //   - encIndex []byte
 //   - encPayload []byte
-func (_e *MockServerClient_Expecter) CreateSecret(ctx interface{}, accessToken interface{}, vaultID interface{}, secretType interface{}, encRow interface{}, encIndex interface{}, encPayload interface{}) *MockServerClient_CreateSecret_Call {
-	return &MockServerClient_CreateSecret_Call{Call: _e.mock.On("CreateSecret", ctx, accessToken, vaultID, secretType, encRow, encIndex, encPayload)}
+func (_e *MockServerClient_Expecter) CreateSecret(ctx interface{}, accessToken interface{}, secretID interface{}, vaultID interface{}, secretType interface{}, encRow interface{}, encIndex interface{}, encPayload interface{}) *MockServerClient_CreateSecret_Call {
+	return &MockServerClient_CreateSecret_Call{Call: _e.mock.On("CreateSecret", ctx, accessToken, secretID, vaultID, secretType, encRow, encIndex, encPayload)}
 }
 
-func (_c *MockServerClient_CreateSecret_Call) Run(run func(ctx context.Context, accessToken string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte)) *MockServerClient_CreateSecret_Call {
+func (_c *MockServerClient_CreateSecret_Call) Run(run func(ctx context.Context, accessToken string, secretID string, vaultID string, secretType int32, encRow []byte, encIndex []byte, encPayload []byte)) *MockServerClient_CreateSecret_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int32), args[4].([]byte), args[5].([]byte), args[6].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(int32), args[5].([]byte), args[6].([]byte), args[7].([]byte))
 	})
 	return _c
 }
 
-func (_c *MockServerClient_CreateSecret_Call) Return(secretID string, err error) *MockServerClient_CreateSecret_Call {
-	_c.Call.Return(secretID, err)
+func (_c *MockServerClient_CreateSecret_Call) Return(_a0 error) *MockServerClient_CreateSecret_Call {
+	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MockServerClient_CreateSecret_Call) RunAndReturn(run func(context.Context, string, string, int32, []byte, []byte, []byte) (string, error)) *MockServerClient_CreateSecret_Call {
+func (_c *MockServerClient_CreateSecret_Call) RunAndReturn(run func(context.Context, string, string, string, int32, []byte, []byte, []byte) error) *MockServerClient_CreateSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -198,6 +189,55 @@ func (_c *MockServerClient_CreateVault_Call) Return(vaultID string, err error) *
 }
 
 func (_c *MockServerClient_CreateVault_Call) RunAndReturn(run func(context.Context, string, []byte, []byte) (string, error)) *MockServerClient_CreateVault_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteSecret provides a mock function with given fields: ctx, accessToken, secretID, baseVersion
+func (_m *MockServerClient) DeleteSecret(ctx context.Context, accessToken string, secretID string, baseVersion int64) error {
+	ret := _m.Called(ctx, accessToken, secretID, baseVersion)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteSecret")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64) error); ok {
+		r0 = rf(ctx, accessToken, secretID, baseVersion)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockServerClient_DeleteSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteSecret'
+type MockServerClient_DeleteSecret_Call struct {
+	*mock.Call
+}
+
+// DeleteSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+//   - baseVersion int64
+func (_e *MockServerClient_Expecter) DeleteSecret(ctx interface{}, accessToken interface{}, secretID interface{}, baseVersion interface{}) *MockServerClient_DeleteSecret_Call {
+	return &MockServerClient_DeleteSecret_Call{Call: _e.mock.On("DeleteSecret", ctx, accessToken, secretID, baseVersion)}
+}
+
+func (_c *MockServerClient_DeleteSecret_Call) Run(run func(ctx context.Context, accessToken string, secretID string, baseVersion int64)) *MockServerClient_DeleteSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int64))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_DeleteSecret_Call) Return(_a0 error) *MockServerClient_DeleteSecret_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockServerClient_DeleteSecret_Call) RunAndReturn(run func(context.Context, string, string, int64) error) *MockServerClient_DeleteSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -657,6 +697,68 @@ func (_c *MockServerClient_SetupEncryption_Call) Return(_a0 error) *MockServerCl
 }
 
 func (_c *MockServerClient_SetupEncryption_Call) RunAndReturn(run func(context.Context, string, []byte, []byte) error) *MockServerClient_SetupEncryption_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateSecret provides a mock function with given fields: ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload
+func (_m *MockServerClient) UpdateSecret(ctx context.Context, accessToken string, secretID string, baseVersion int64, encRow []byte, encIndex []byte, encPayload []byte) (int64, error) {
+	ret := _m.Called(ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateSecret")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, []byte, []byte, []byte) (int64, error)); ok {
+		return rf(ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int64, []byte, []byte, []byte) int64); ok {
+		r0 = rf(ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int64, []byte, []byte, []byte) error); ok {
+		r1 = rf(ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_UpdateSecret_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateSecret'
+type MockServerClient_UpdateSecret_Call struct {
+	*mock.Call
+}
+
+// UpdateSecret is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - secretID string
+//   - baseVersion int64
+//   - encRow []byte
+//   - encIndex []byte
+//   - encPayload []byte
+func (_e *MockServerClient_Expecter) UpdateSecret(ctx interface{}, accessToken interface{}, secretID interface{}, baseVersion interface{}, encRow interface{}, encIndex interface{}, encPayload interface{}) *MockServerClient_UpdateSecret_Call {
+	return &MockServerClient_UpdateSecret_Call{Call: _e.mock.On("UpdateSecret", ctx, accessToken, secretID, baseVersion, encRow, encIndex, encPayload)}
+}
+
+func (_c *MockServerClient_UpdateSecret_Call) Run(run func(ctx context.Context, accessToken string, secretID string, baseVersion int64, encRow []byte, encIndex []byte, encPayload []byte)) *MockServerClient_UpdateSecret_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(int64), args[4].([]byte), args[5].([]byte), args[6].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_UpdateSecret_Call) Return(newVersion int64, err error) *MockServerClient_UpdateSecret_Call {
+	_c.Call.Return(newVersion, err)
+	return _c
+}
+
+func (_c *MockServerClient_UpdateSecret_Call) RunAndReturn(run func(context.Context, string, string, int64, []byte, []byte, []byte) (int64, error)) *MockServerClient_UpdateSecret_Call {
 	_c.Call.Return(run)
 	return _c
 }

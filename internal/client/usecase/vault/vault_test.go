@@ -69,7 +69,7 @@ func TestCreate_Success_EncryptsAndOpensSession(t *testing.T) {
 	assert.Equal(t, vk, unwrapped)
 
 	var name string
-	require.NoError(t, c.DecryptStruct(unwrapped, gotEncName, &name))
+	require.NoError(t, c.DecryptStruct(unwrapped, nil, gotEncName, &name))
 	assert.Equal(t, "Personal", name)
 }
 
@@ -95,7 +95,7 @@ func TestList_DecryptsAndOpensSession(t *testing.T) {
 	require.NoError(t, err)
 	wrapped, err := c.WrapVaultKey(vaultKey, mk)
 	require.NoError(t, err)
-	encName, err := c.EncryptStruct(vaultKey, "Work")
+	encName, err := c.EncryptStruct(vaultKey, nil, "Work")
 	require.NoError(t, err)
 
 	server := mocks.NewMockServerClient(t)

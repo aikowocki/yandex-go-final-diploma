@@ -26,7 +26,8 @@ func (u *UseCase) GetPayload(ctx context.Context, vaultID, secretID string) (Dec
 	}
 
 	var payload secretcontent.LoginPasswordPayload
-	if err := u.cipher.DecryptStruct(vaultKey, encPayload, &payload); err != nil {
+	ad := secretAAD(vaultID, secretID, version, tierPayload)
+	if err := u.cipher.DecryptStruct(vaultKey, ad, encPayload, &payload); err != nil {
 		return DecryptedPayload{}, fmt.Errorf("decrypt payload: %w", err)
 	}
 	return DecryptedPayload{ID: secretID, Version: version, Payload: payload}, nil

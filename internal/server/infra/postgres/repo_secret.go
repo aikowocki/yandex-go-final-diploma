@@ -29,8 +29,13 @@ func (r *SecretRepo) Create(ctx context.Context, s domain.Secret) (domain.Secret
 	if err != nil {
 		return domain.Secret{}, fmt.Errorf("create secret: invalid vault id: %w", err)
 	}
+	secretID, err := parseUUID(s.ID)
+	if err != nil {
+		return domain.Secret{}, fmt.Errorf("create secret: invalid secret id: %w", err)
+	}
 
 	row, err := r.q(ctx).CreateSecret(ctx, gen.CreateSecretParams{
+		ID:         secretID,
 		VaultID:    vaultID,
 		Type:       int16(s.Type),
 		EncRow:     s.EncRow,
@@ -46,6 +51,82 @@ func (r *SecretRepo) Create(ctx context.Context, s domain.Secret) (domain.Secret
 	s.CreatedAt = row.CreatedAt.Time
 	s.UpdatedAt = row.UpdatedAt.Time
 	return s, nil
+}
+
+// GetForUpdate читает полную строку секрета под блокировкой (FOR UPDATE) внутри транзакции.
+func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) (domain.Secret, error) {
+	sid, err := parseUUID(secretID)
+	if err != nil {
+		return domain.Secret{}, secret.ErrSecretNotFound
+	}
+	uid, err := parseUUID(userID)
+	if err != nil {
+		return domain.Secret{}, fmt.Errorf("get secret for update: invalid user id: %w", err)
+	}
+
+	row, err := r.q(ctx).GetSecretForUpdate(ctx, gen.GetSecretForUpdateParams{ID: sid, UserID: uid})
+	if err != nil {
+		if isNoRows(err) {
+			return domain.Secret{}, secret.ErrSecretNotFound
+		}
+		return domain.Secret{}, fmt.Errorf("get secret for update: %w", err)
+	}
+
+	return domain.Secret{
+		ID:         uuidToString(row.ID),
+		VaultID:    uuidToString(row.VaultID),
+		Type:       domain.SecretType(row.Type),
+		EncRow:     row.EncRow,
+		EncIndex:   row.EncIndex,
+		EncPayload: row.EncPayload,
+		Version:    row.Version,
+		Deleted:    row.Deleted,
+	}, nil
+}
+
+// UpdateFields применяет новые шифротексты и инкрементирует версию.
+func (r *SecretRepo) UpdateFields(ctx context.Context, secretID string, encRow, encIndex, encPayload []byte) (int64, error) {
+	sid, err := parseUUID(secretID)
+	if err != nil {
+		return 0, secret.ErrSecretNotFound
+	}
+
+	version, err := r.q(ctx).UpdateSecretFields(ctx, gen.UpdateSecretFieldsParams{
+		ID:         sid,
+		EncRow:     encRow,
+		EncIndex:   encIndex,
+		EncPayload: encPayload,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("update secret fields: %w", err)
+	}
+	return version, nil
+}
+
+// SoftDelete помечает секрет удалённым и инкрементирует версию.
+func (r *SecretRepo) SoftDelete(ctx context.Context, secretID string) (int64, error) {
+	sid, err := parseUUID(secretID)
+	if err != nil {
+		return 0, secret.ErrSecretNotFound
+	}
+
+	version, err := r.q(ctx).SoftDeleteSecret(ctx, sid)
+	if err != nil {
+		return 0, fmt.Errorf("soft delete secret: %w", err)
+	}
+	return version, nil
+}
+
+// BumpVaultVersion инкрементирует версию папки (сигнал sync).
+func (r *SecretRepo) BumpVaultVersion(ctx context.Context, vaultID string) error {
+	vid, err := parseUUID(vaultID)
+	if err != nil {
+		return fmt.Errorf("bump vault version: invalid vault id: %w", err)
+	}
+	if err := r.q(ctx).BumpVaultVersion(ctx, vid); err != nil {
+		return fmt.Errorf("bump vault version: %w", err)
+	}
+	return nil
 }
 
 func (r *SecretRepo) ListRow(ctx context.Context, vaultID, userID string) ([]domain.Secret, error) {

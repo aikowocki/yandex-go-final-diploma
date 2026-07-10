@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
@@ -31,6 +32,12 @@ func mapSecretErr(err error) error {
 	if err == nil {
 		return nil
 	}
+
+	// Конфликт версий → codes.Aborted + деталь с актуальной серверной версией секрета.
+	if conflict, ok := errors.AsType[*secret.ErrConflict](err); ok {
+		return secretConflictStatus(conflict)
+	}
+
 	switch {
 	case errors.Is(err, secret.ErrVaultNotFound):
 		return status.Error(codes.NotFound, "vault not found")
@@ -45,6 +52,17 @@ func mapSecretErr(err error) error {
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}
+}
+
+// secretConflictStatus строит gRPC-статус Aborted с деталью SecretConflict (серверная версия).
+func secretConflictStatus(conflict *secret.ErrConflict) error {
+	st := status.New(codes.Aborted, "secret version conflict")
+	withDetails, derr := st.WithDetails(mapper.SecretConflictDetail(conflict.Current))
+	if derr != nil {
+		// Не удалось приложить деталь — отдаём хотя бы код Aborted.
+		return st.Err()
+	}
+	return withDetails.Err()
 }
 
 // mapAuthErr преобразует ошибки auth в соответствующие gRPC status-коды.

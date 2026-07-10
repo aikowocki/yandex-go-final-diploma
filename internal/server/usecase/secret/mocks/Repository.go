@@ -22,6 +22,53 @@ func (_m *MockRepository) EXPECT() *MockRepository_Expecter {
 	return &MockRepository_Expecter{mock: &_m.Mock}
 }
 
+// BumpVaultVersion provides a mock function with given fields: ctx, vaultID
+func (_m *MockRepository) BumpVaultVersion(ctx context.Context, vaultID string) error {
+	ret := _m.Called(ctx, vaultID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BumpVaultVersion")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, vaultID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRepository_BumpVaultVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BumpVaultVersion'
+type MockRepository_BumpVaultVersion_Call struct {
+	*mock.Call
+}
+
+// BumpVaultVersion is a helper method to define mock.On call
+//   - ctx context.Context
+//   - vaultID string
+func (_e *MockRepository_Expecter) BumpVaultVersion(ctx interface{}, vaultID interface{}) *MockRepository_BumpVaultVersion_Call {
+	return &MockRepository_BumpVaultVersion_Call{Call: _e.mock.On("BumpVaultVersion", ctx, vaultID)}
+}
+
+func (_c *MockRepository_BumpVaultVersion_Call) Run(run func(ctx context.Context, vaultID string)) *MockRepository_BumpVaultVersion_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_BumpVaultVersion_Call) Return(_a0 error) *MockRepository_BumpVaultVersion_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRepository_BumpVaultVersion_Call) RunAndReturn(run func(context.Context, string) error) *MockRepository_BumpVaultVersion_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Create provides a mock function with given fields: ctx, s
 func (_m *MockRepository) Create(ctx context.Context, s domain.Secret) (domain.Secret, error) {
 	ret := _m.Called(ctx, s)
@@ -75,6 +122,64 @@ func (_c *MockRepository_Create_Call) Return(_a0 domain.Secret, _a1 error) *Mock
 }
 
 func (_c *MockRepository_Create_Call) RunAndReturn(run func(context.Context, domain.Secret) (domain.Secret, error)) *MockRepository_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetForUpdate provides a mock function with given fields: ctx, secretID, userID
+func (_m *MockRepository) GetForUpdate(ctx context.Context, secretID string, userID string) (domain.Secret, error) {
+	ret := _m.Called(ctx, secretID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetForUpdate")
+	}
+
+	var r0 domain.Secret
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (domain.Secret, error)); ok {
+		return rf(ctx, secretID, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) domain.Secret); ok {
+		r0 = rf(ctx, secretID, userID)
+	} else {
+		r0 = ret.Get(0).(domain.Secret)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, secretID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_GetForUpdate_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetForUpdate'
+type MockRepository_GetForUpdate_Call struct {
+	*mock.Call
+}
+
+// GetForUpdate is a helper method to define mock.On call
+//   - ctx context.Context
+//   - secretID string
+//   - userID string
+func (_e *MockRepository_Expecter) GetForUpdate(ctx interface{}, secretID interface{}, userID interface{}) *MockRepository_GetForUpdate_Call {
+	return &MockRepository_GetForUpdate_Call{Call: _e.mock.On("GetForUpdate", ctx, secretID, userID)}
+}
+
+func (_c *MockRepository_GetForUpdate_Call) Run(run func(ctx context.Context, secretID string, userID string)) *MockRepository_GetForUpdate_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_GetForUpdate_Call) Return(_a0 domain.Secret, _a1 error) *MockRepository_GetForUpdate_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_GetForUpdate_Call) RunAndReturn(run func(context.Context, string, string) (domain.Secret, error)) *MockRepository_GetForUpdate_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -253,6 +358,123 @@ func (_c *MockRepository_ListRow_Call) Return(_a0 []domain.Secret, _a1 error) *M
 }
 
 func (_c *MockRepository_ListRow_Call) RunAndReturn(run func(context.Context, string, string) ([]domain.Secret, error)) *MockRepository_ListRow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SoftDelete provides a mock function with given fields: ctx, secretID
+func (_m *MockRepository) SoftDelete(ctx context.Context, secretID string) (int64, error) {
+	ret := _m.Called(ctx, secretID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SoftDelete")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int64, error)); ok {
+		return rf(ctx, secretID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
+		r0 = rf(ctx, secretID)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, secretID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_SoftDelete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SoftDelete'
+type MockRepository_SoftDelete_Call struct {
+	*mock.Call
+}
+
+// SoftDelete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - secretID string
+func (_e *MockRepository_Expecter) SoftDelete(ctx interface{}, secretID interface{}) *MockRepository_SoftDelete_Call {
+	return &MockRepository_SoftDelete_Call{Call: _e.mock.On("SoftDelete", ctx, secretID)}
+}
+
+func (_c *MockRepository_SoftDelete_Call) Run(run func(ctx context.Context, secretID string)) *MockRepository_SoftDelete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockRepository_SoftDelete_Call) Return(_a0 int64, _a1 error) *MockRepository_SoftDelete_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_SoftDelete_Call) RunAndReturn(run func(context.Context, string) (int64, error)) *MockRepository_SoftDelete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateFields provides a mock function with given fields: ctx, secretID, encRow, encIndex, encPayload
+func (_m *MockRepository) UpdateFields(ctx context.Context, secretID string, encRow []byte, encIndex []byte, encPayload []byte) (int64, error) {
+	ret := _m.Called(ctx, secretID, encRow, encIndex, encPayload)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateFields")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte, []byte) (int64, error)); ok {
+		return rf(ctx, secretID, encRow, encIndex, encPayload)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte, []byte) int64); ok {
+		r0 = rf(ctx, secretID, encRow, encIndex, encPayload)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, []byte, []byte, []byte) error); ok {
+		r1 = rf(ctx, secretID, encRow, encIndex, encPayload)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_UpdateFields_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateFields'
+type MockRepository_UpdateFields_Call struct {
+	*mock.Call
+}
+
+// UpdateFields is a helper method to define mock.On call
+//   - ctx context.Context
+//   - secretID string
+//   - encRow []byte
+//   - encIndex []byte
+//   - encPayload []byte
+func (_e *MockRepository_Expecter) UpdateFields(ctx interface{}, secretID interface{}, encRow interface{}, encIndex interface{}, encPayload interface{}) *MockRepository_UpdateFields_Call {
+	return &MockRepository_UpdateFields_Call{Call: _e.mock.On("UpdateFields", ctx, secretID, encRow, encIndex, encPayload)}
+}
+
+func (_c *MockRepository_UpdateFields_Call) Run(run func(ctx context.Context, secretID string, encRow []byte, encIndex []byte, encPayload []byte)) *MockRepository_UpdateFields_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte), args[4].([]byte))
+	})
+	return _c
+}
+
+func (_c *MockRepository_UpdateFields_Call) Return(_a0 int64, _a1 error) *MockRepository_UpdateFields_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_UpdateFields_Call) RunAndReturn(run func(context.Context, string, []byte, []byte, []byte) (int64, error)) *MockRepository_UpdateFields_Call {
 	_c.Call.Return(run)
 	return _c
 }

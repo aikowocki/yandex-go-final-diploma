@@ -46,6 +46,20 @@ func (s *Store) SetSecretPayload(ctx context.Context, id string, encPayload []by
 	return nil
 }
 
+// SetSecretIndex кеширует Tier 2b (enc_index) и выставляет index_loaded=1.
+func (s *Store) SetSecretIndex(ctx context.Context, id string, encIndex []byte, version int64) error {
+	res, err := s.db.ExecContext(ctx, `
+		UPDATE secrets SET enc_index = ?, index_loaded = 1, version = ? WHERE id = ?`,
+		encIndex, version, id)
+	if err != nil {
+		return fmt.Errorf("localstore: set secret index: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return fmt.Errorf("localstore: set secret index: secret %q not found", id)
+	}
+	return nil
+}
+
 func (s *Store) ListSecretsByVault(ctx context.Context, vaultID string) ([]contracts.LocalSecret, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, vault_id, type, enc_row, enc_index, enc_payload,

@@ -3,7 +3,9 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
+	"text/tabwriter"
 
 	clienti18n "github.com/aikowocki/yandex-go-final-diploma/internal/client/i18n"
 	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
@@ -14,10 +16,13 @@ import (
 
 // SecretCmd — группа команд секретов.
 type SecretCmd struct {
-	Add  SecretAddCmd  `cmd:"" help:"Add a login/password secret to a vault."`
-	List SecretListCmd `cmd:"" help:"List secrets of a vault (without revealing passwords)."`
-	Get  SecretGetCmd  `cmd:"" help:"Reveal a secret's password."`
-	Show SecretShowCmd `cmd:"" help:"Show a secret's full card (all fields, incl. password)."`
+	Add    SecretAddCmd    `cmd:"" help:"Add a login/password secret to a vault."`
+	List   SecretListCmd   `cmd:"" help:"List secrets of a vault (without revealing passwords)."`
+	Search SecretSearchCmd `cmd:"" help:"Search secrets of a vault (Tier 2a always; notes as index loads)."`
+	Get    SecretGetCmd    `cmd:"" help:"Reveal a secret's password."`
+	Show   SecretShowCmd   `cmd:"" help:"Show a secret's full card (all fields, incl. password)."`
+	Update SecretUpdateCmd `cmd:"" help:"Update a secret (optimistic locking; resolves conflicts)."`
+	Delete SecretDeleteCmd `cmd:"" help:"Delete a secret (soft-delete, optimistic locking)."`
 }
 
 type SecretAddCmd struct {
@@ -34,39 +39,12 @@ func (c *SecretAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret 
 		return err
 	}
 
-	title, err := promptLine(l.T("prompt_title"))
-	if err != nil {
-		return err
-	}
-	username, err := promptLine(l.T("prompt_username"))
-	if err != nil {
-		return err
-	}
-	password, err := promptSecret(l.T("prompt_password"))
-	if err != nil {
-		return err
-	}
-	uri, err := promptLine(l.T("prompt_uri"))
-	if err != nil {
-		return err
-	}
-	tagsRaw, err := promptLine(l.T("prompt_tags"))
-	if err != nil {
-		return err
-	}
-	note, err := promptLine(l.T("prompt_note"))
+	input, err := promptLoginPasswordInput(l)
 	if err != nil {
 		return err
 	}
 
-	if _, err := secret.CreateLoginPassword(ctx, vaultID, secretuc.CreateLoginPasswordInput{
-		Title:    title,
-		Username: username,
-		Password: string(password),
-		URI:      uri,
-		Tags:     parseTags(tagsRaw),
-		Note:     note,
-	}); err != nil {
+	if _, err := secret.CreateLoginPassword(ctx, vaultID, input); err != nil {
 		return err
 	}
 	fmt.Println(l.T("secret_created"))
@@ -102,10 +80,12 @@ func (c *SecretListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret
 		fmt.Println(l.T("secret_empty"))
 		return nil
 	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tTITLE\tUSERNAME\tURI")
 	for _, r := range rows {
-		// Пароль здесь НЕ показывается (Tier 2a). id нужен для secret get.
-		fmt.Printf("%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
 	}
+	w.Flush()
 	return nil
 }
 

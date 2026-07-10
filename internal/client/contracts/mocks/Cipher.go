@@ -17,17 +17,17 @@ func (_m *MockCipher) EXPECT() *MockCipher_Expecter {
 	return &MockCipher_Expecter{mock: &_m.Mock}
 }
 
-// DecryptStruct provides a mock function with given fields: key, blob, value
-func (_m *MockCipher) DecryptStruct(key []byte, blob []byte, value any) error {
-	ret := _m.Called(key, blob, value)
+// DecryptStruct provides a mock function with given fields: key, ad, blob, value
+func (_m *MockCipher) DecryptStruct(key []byte, ad []byte, blob []byte, value any) error {
+	ret := _m.Called(key, ad, blob, value)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DecryptStruct")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]byte, []byte, any) error); ok {
-		r0 = rf(key, blob, value)
+	if rf, ok := ret.Get(0).(func([]byte, []byte, []byte, any) error); ok {
+		r0 = rf(key, ad, blob, value)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -42,15 +42,16 @@ type MockCipher_DecryptStruct_Call struct {
 
 // DecryptStruct is a helper method to define mock.On call
 //   - key []byte
+//   - ad []byte
 //   - blob []byte
 //   - value any
-func (_e *MockCipher_Expecter) DecryptStruct(key interface{}, blob interface{}, value interface{}) *MockCipher_DecryptStruct_Call {
-	return &MockCipher_DecryptStruct_Call{Call: _e.mock.On("DecryptStruct", key, blob, value)}
+func (_e *MockCipher_Expecter) DecryptStruct(key interface{}, ad interface{}, blob interface{}, value interface{}) *MockCipher_DecryptStruct_Call {
+	return &MockCipher_DecryptStruct_Call{Call: _e.mock.On("DecryptStruct", key, ad, blob, value)}
 }
 
-func (_c *MockCipher_DecryptStruct_Call) Run(run func(key []byte, blob []byte, value any)) *MockCipher_DecryptStruct_Call {
+func (_c *MockCipher_DecryptStruct_Call) Run(run func(key []byte, ad []byte, blob []byte, value any)) *MockCipher_DecryptStruct_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]byte), args[1].([]byte), args[2].(any))
+		run(args[0].([]byte), args[1].([]byte), args[2].([]byte), args[3].(any))
 	})
 	return _c
 }
@@ -60,14 +61,14 @@ func (_c *MockCipher_DecryptStruct_Call) Return(_a0 error) *MockCipher_DecryptSt
 	return _c
 }
 
-func (_c *MockCipher_DecryptStruct_Call) RunAndReturn(run func([]byte, []byte, any) error) *MockCipher_DecryptStruct_Call {
+func (_c *MockCipher_DecryptStruct_Call) RunAndReturn(run func([]byte, []byte, []byte, any) error) *MockCipher_DecryptStruct_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// EncryptStruct provides a mock function with given fields: key, value
-func (_m *MockCipher) EncryptStruct(key []byte, value any) ([]byte, error) {
-	ret := _m.Called(key, value)
+// EncryptStruct provides a mock function with given fields: key, ad, value
+func (_m *MockCipher) EncryptStruct(key []byte, ad []byte, value any) ([]byte, error) {
+	ret := _m.Called(key, ad, value)
 
 	if len(ret) == 0 {
 		panic("no return value specified for EncryptStruct")
@@ -75,19 +76,19 @@ func (_m *MockCipher) EncryptStruct(key []byte, value any) ([]byte, error) {
 
 	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func([]byte, any) ([]byte, error)); ok {
-		return rf(key, value)
+	if rf, ok := ret.Get(0).(func([]byte, []byte, any) ([]byte, error)); ok {
+		return rf(key, ad, value)
 	}
-	if rf, ok := ret.Get(0).(func([]byte, any) []byte); ok {
-		r0 = rf(key, value)
+	if rf, ok := ret.Get(0).(func([]byte, []byte, any) []byte); ok {
+		r0 = rf(key, ad, value)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func([]byte, any) error); ok {
-		r1 = rf(key, value)
+	if rf, ok := ret.Get(1).(func([]byte, []byte, any) error); ok {
+		r1 = rf(key, ad, value)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -102,14 +103,15 @@ type MockCipher_EncryptStruct_Call struct {
 
 // EncryptStruct is a helper method to define mock.On call
 //   - key []byte
+//   - ad []byte
 //   - value any
-func (_e *MockCipher_Expecter) EncryptStruct(key interface{}, value interface{}) *MockCipher_EncryptStruct_Call {
-	return &MockCipher_EncryptStruct_Call{Call: _e.mock.On("EncryptStruct", key, value)}
+func (_e *MockCipher_Expecter) EncryptStruct(key interface{}, ad interface{}, value interface{}) *MockCipher_EncryptStruct_Call {
+	return &MockCipher_EncryptStruct_Call{Call: _e.mock.On("EncryptStruct", key, ad, value)}
 }
 
-func (_c *MockCipher_EncryptStruct_Call) Run(run func(key []byte, value any)) *MockCipher_EncryptStruct_Call {
+func (_c *MockCipher_EncryptStruct_Call) Run(run func(key []byte, ad []byte, value any)) *MockCipher_EncryptStruct_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]byte), args[1].(any))
+		run(args[0].([]byte), args[1].([]byte), args[2].(any))
 	})
 	return _c
 }
@@ -119,7 +121,7 @@ func (_c *MockCipher_EncryptStruct_Call) Return(_a0 []byte, _a1 error) *MockCiph
 	return _c
 }
 
-func (_c *MockCipher_EncryptStruct_Call) RunAndReturn(run func([]byte, any) ([]byte, error)) *MockCipher_EncryptStruct_Call {
+func (_c *MockCipher_EncryptStruct_Call) RunAndReturn(run func([]byte, []byte, any) ([]byte, error)) *MockCipher_EncryptStruct_Call {
 	_c.Call.Return(run)
 	return _c
 }

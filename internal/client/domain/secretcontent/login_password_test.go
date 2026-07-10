@@ -37,22 +37,22 @@ func TestLoginPasswordTiers_EncryptDecryptRoundTrip(t *testing.T) {
 		Password: "hunter2hunter2",
 	}
 
-	encRow, err := c.EncryptStruct(vaultKey, row)
+	encRow, err := c.EncryptStruct(vaultKey, nil, row)
 	require.NoError(t, err)
-	encIndex, err := c.EncryptStruct(vaultKey, index)
+	encIndex, err := c.EncryptStruct(vaultKey, nil, index)
 	require.NoError(t, err)
-	encPayload, err := c.EncryptStruct(vaultKey, payload)
+	encPayload, err := c.EncryptStruct(vaultKey, nil, payload)
 	require.NoError(t, err)
 
 	var gotRow secretcontent.LoginPasswordRow
-	require.NoError(t, c.DecryptStruct(vaultKey, encRow, &gotRow))
+	require.NoError(t, c.DecryptStruct(vaultKey, nil, encRow, &gotRow))
 	assert.Equal(t, row, gotRow)
 
 	var gotIndex secretcontent.LoginPasswordIndex
-	require.NoError(t, c.DecryptStruct(vaultKey, encIndex, &gotIndex))
+	require.NoError(t, c.DecryptStruct(vaultKey, nil, encIndex, &gotIndex))
 	assert.Equal(t, index, gotIndex)
 
 	var gotPayload secretcontent.LoginPasswordPayload
-	require.NoError(t, c.DecryptStruct(vaultKey, encPayload, &gotPayload))
+	require.NoError(t, c.DecryptStruct(vaultKey, nil, encPayload, &gotPayload))
 	assert.Equal(t, payload, gotPayload)
 }

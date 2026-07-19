@@ -1,5 +1,6 @@
 package vault
 
+// CreateParams — параметры создания папки.
 type CreateParams struct {
 	UserID          string
 	WrappedVaultKey []byte

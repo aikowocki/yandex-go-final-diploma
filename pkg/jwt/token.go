@@ -19,8 +19,10 @@ const (
 )
 
 var (
+	// ErrInvalidToken — токен не прошёл проверку подписи/срока действия.
 	ErrInvalidToken = errors.New("jwt: invalid token")
-	ErrWrongType    = errors.New("jwt: unexpected token type")
+	// ErrWrongType — предъявлен токен не того типа (access вместо refresh или наоборот).
+	ErrWrongType = errors.New("jwt: unexpected token type")
 )
 
 type claims struct {
@@ -28,12 +30,14 @@ type claims struct {
 	Type tokenType `json:"type"`
 }
 
+// TokenIssuer выпускает и проверяет JWT access/refresh токены.
 type TokenIssuer struct {
 	secret     []byte
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
+// New создаёт TokenIssuer с секретом подписи и TTL для access/refresh токенов.
 func New(secret []byte, accessTTL, refreshTTL time.Duration) *TokenIssuer {
 	return &TokenIssuer{
 		secret:     secret,

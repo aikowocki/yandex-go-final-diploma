@@ -6,6 +6,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 )
 
+// Repository — контракт хранилища секретов.
 type Repository interface {
 	Create(ctx context.Context, s domain.Secret) (domain.Secret, error)
 	ListRow(ctx context.Context, vaultID, userID string) ([]domain.Secret, error)
@@ -18,6 +19,7 @@ type Repository interface {
 	AttachBlob(ctx context.Context, secretID, blobRef string, blobSize int64) (int64, error)
 }
 
+// VaultOwnership проверяет принадлежность папки пользователю.
 type VaultOwnership interface {
 	IsOwner(ctx context.Context, vaultID, userID string) (bool, error)
 }
@@ -27,12 +29,14 @@ type TxManager interface {
 	Do(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
+// UseCase реализует серверные сценарии работы с секретами.
 type UseCase struct {
 	secrets Repository
 	vaults  VaultOwnership
 	tx      TxManager
 }
 
+// New создаёт серверный secret-usecase.
 func New(secrets Repository, vaults VaultOwnership, tx TxManager) *UseCase {
 	return &UseCase{secrets: secrets, vaults: vaults, tx: tx}
 }

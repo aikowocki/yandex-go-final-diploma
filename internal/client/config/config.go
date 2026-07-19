@@ -35,6 +35,7 @@ type persistedConfig struct {
 	TOTPRevealMode  string `json:"totp_reveal_mode"`
 }
 
+// Save сохраняет конфиг клиента в config.json (в defaultDataDir).
 func Save(cfg *ClientConfig) error {
 	dir, err := defaultDataDir()
 	if err != nil {

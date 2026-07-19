@@ -18,6 +18,7 @@ const (
 )
 
 var (
+	// ErrInvalidKeySize — переданный ключ не соответствует KeySize.
 	ErrInvalidKeySize = fmt.Errorf("crypto: key must be %d bytes", KeySize)
 	// ErrCiphertextTooShort — блоб короче nonce, разобрать нельзя.
 	ErrCiphertextTooShort = errors.New("crypto: ciphertext too short")

@@ -16,6 +16,7 @@ type RecoveryRepo struct {
 	db *DB
 }
 
+// NewRecoveryRepo создаёт RecoveryRepo поверх переданного пула соединений.
 func NewRecoveryRepo(db *DB) *RecoveryRepo {
 	return &RecoveryRepo{db: db}
 }

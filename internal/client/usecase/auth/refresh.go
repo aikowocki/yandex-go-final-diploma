@@ -19,7 +19,7 @@ func (u *UseCase) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	if err := u.reconcileAccount(ctx, res.Tokens.UserID); err != nil {
+	if err := u.reconcileAccount(ctx, res.UserID); err != nil {
 		return err
 	}
 
@@ -29,5 +29,6 @@ func (u *UseCase) Refresh(ctx context.Context) error {
 
 	u.encKDFSalt = res.EncKDFSalt
 	u.encKDFParams = res.EncKDFParams
+	u.encMasterKey = res.EncMasterKey
 	return u.persistEncryption(ctx)
 }

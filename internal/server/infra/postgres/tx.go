@@ -21,6 +21,7 @@ type TxManager struct {
 	db *DB
 }
 
+// NewTxManager создаёт TxManager поверх переданного пула соединений.
 func NewTxManager(db *DB) *TxManager {
 	return &TxManager{db: db}
 }
@@ -33,7 +34,7 @@ func (m *TxManager) Do(ctx context.Context, fn func(ctx context.Context) error) 
 	}
 
 	return withRetry(ctx, isTxRetryable, func() (err error) {
-		tx, err := m.db.Pool.Begin(ctx)
+		tx, err := m.db.Begin(ctx)
 		if err != nil {
 			return fmt.Errorf("begin tx: %w", err)
 		}

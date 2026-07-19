@@ -2,6 +2,7 @@ package secret
 
 import "github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
 
+// CreateLoginPasswordInput входные данные для создания секрета логин/пароль.
 type CreateLoginPasswordInput struct {
 	Title        string
 	Tags         []string
@@ -13,6 +14,7 @@ type CreateLoginPasswordInput struct {
 	OTPCodes     []secretcontent.OTPCode
 }
 
+// CreateTextInput входные данные для создания текстового секрета.
 type CreateTextInput struct {
 	Title        string
 	Tags         []string
@@ -22,6 +24,7 @@ type CreateTextInput struct {
 	OTPCodes     []secretcontent.OTPCode
 }
 
+// CreateBankCardInput входные данные для создания секрета «банковская карта».
 type CreateBankCardInput struct {
 	Title        string
 	Tags         []string
@@ -37,6 +40,7 @@ type CreateBankCardInput struct {
 	OTPCodes     []secretcontent.OTPCode
 }
 
+// CreateTOTPInput входные данные для создания секрета TOTP.
 type CreateTOTPInput struct {
 	Title        string
 	Tags         []string
@@ -51,6 +55,7 @@ type CreateTOTPInput struct {
 	OTPCodes     []secretcontent.OTPCode
 }
 
+// TextDetail — детальная карточка текстового секрета.
 type TextDetail struct {
 	ID      string
 	Version int64
@@ -59,6 +64,7 @@ type TextDetail struct {
 	Payload secretcontent.TextPayload
 }
 
+// BankCardDetail — детальная карточка секрета «банковская карта».
 type BankCardDetail struct {
 	ID      string
 	Version int64
@@ -67,6 +73,7 @@ type BankCardDetail struct {
 	Payload secretcontent.BankCardPayload
 }
 
+// TOTPDetail — детальная карточка секрета TOTP.
 type TOTPDetail struct {
 	ID      string
 	Version int64
@@ -75,12 +82,14 @@ type TOTPDetail struct {
 	Payload secretcontent.TOTPPayload
 }
 
+// DecryptedRow — расшифрованная строка (row-тир) секрета логин/пароль.
 type DecryptedRow struct {
 	ID      string
 	Version int64
 	Row     secretcontent.LoginPasswordRow
 }
 
+// DecryptedPayload — расшифрованный payload-тир секрета логин/пароль.
 type DecryptedPayload struct {
 	ID      string
 	Version int64
@@ -90,30 +99,10 @@ type DecryptedPayload struct {
 // ConflictChoice — выбор пользователя при разрешении конфликта версий.
 type ConflictChoice string
 
+// Варианты разрешения конфликта версий секрета.
 const (
-	ChoiceMine   ConflictChoice = "mine"
+	// ChoiceMine — оставить локальную версию, повторно записав её с новым baseVersion.
+	ChoiceMine ConflictChoice = "mine"
+	// ChoiceServer — принять серверную версию, отбросив локальные изменения.
 	ChoiceServer ConflictChoice = "server"
 )
-
-// ConflictResult — результат обновления, отклонённого из-за конфликта версий: обе версии
-// расшифрованы клиентом (plaintext) для показа пользователю. Внутренние поля хранят контекст,
-// нужный ResolveConflict, чтобы применить выбор без повторной расшифровки.
-type ConflictResult struct {
-	SecretID string
-	Mine     Detail // Версия, которую пытался записать пользователь
-	Server   Detail // Актуальная серверная версия
-
-	vaultID   string
-	mineInput CreateLoginPasswordInput
-	server    ServerVersion
-	isDelete  bool // Конфликт возник при удалении (ChoiceMine → повторить удаление)
-}
-
-// ServerVersion — сырые (зашифрованные) поля серверной версии секрета для разрешения конфликта.
-type ServerVersion struct {
-	Type       int32
-	Version    int64
-	EncRow     []byte
-	EncIndex   []byte
-	EncPayload []byte
-}

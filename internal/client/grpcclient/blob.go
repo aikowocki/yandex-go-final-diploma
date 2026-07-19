@@ -11,6 +11,7 @@ import (
 
 const uploadChunkSize = 64 * 1024
 
+// UploadBlob стримит содержимое r на сервер чанками и возвращает blob-ref/размер.
 func (c *Client) UploadBlob(ctx context.Context, accessToken, secretID string, r io.Reader) (string, int64, error) {
 	ctx = withBearer(ctx, accessToken)
 	stream, err := c.blob.UploadBlob(ctx)
@@ -55,6 +56,7 @@ func (c *Client) UploadBlob(ctx context.Context, accessToken, secretID string, r
 	return res.GetBlobRef(), res.GetBlobSize(), nil
 }
 
+// DownloadBlob открывает стрим скачивания бинарного секрета с сервера.
 func (c *Client) DownloadBlob(ctx context.Context, accessToken, secretID string) (io.ReadCloser, error) {
 	ctx = withBearer(ctx, accessToken)
 	stream, err := c.blob.DownloadBlob(ctx, &pb.DownloadBlobRequest{SecretId: secretID})
@@ -64,6 +66,7 @@ func (c *Client) DownloadBlob(ctx context.Context, accessToken, secretID string)
 	return &blobStreamReader{stream: stream}, nil
 }
 
+// AttachBlob привязывает загруженный blob к секрету с оптимистичной блокировкой по версии.
 func (c *Client) AttachBlob(ctx context.Context, accessToken, secretID string, baseVersion int64, blobRef string, blobSize int64) (int64, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.blob.AttachBlob(ctx, &pb.AttachBlobRequest{

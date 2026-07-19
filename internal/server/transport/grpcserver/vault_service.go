@@ -11,6 +11,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
 )
 
+// CreateVault создаёт новую папку (vault) для текущего пользователя.
 func (s *Server) CreateVault(ctx context.Context, req *pb.CreateVaultRequest) (*pb.CreateVaultResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -24,6 +25,7 @@ func (s *Server) CreateVault(ctx context.Context, req *pb.CreateVaultRequest) (*
 	return &pb.CreateVaultResponse{VaultId: id}, nil
 }
 
+// ListVaults возвращает все папки текущего пользователя.
 func (s *Server) ListVaults(ctx context.Context, _ *pb.ListVaultsRequest) (*pb.ListVaultsResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -37,6 +39,7 @@ func (s *Server) ListVaults(ctx context.Context, _ *pb.ListVaultsRequest) (*pb.L
 	return mapper.ListVaultsResponse(vaults), nil
 }
 
+// CheckFreshness возвращает текущие версии всех папок пользователя для сверки с клиентом.
 func (s *Server) CheckFreshness(ctx context.Context, _ *pb.CheckFreshnessRequest) (*pb.CheckFreshnessResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {

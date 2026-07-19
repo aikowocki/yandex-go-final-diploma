@@ -2,6 +2,7 @@ package domain
 
 import "time"
 
+// Vault папка секретов.
 type Vault struct {
 	ID              string
 	UserID          string

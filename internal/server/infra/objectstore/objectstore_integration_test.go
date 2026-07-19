@@ -1,5 +1,3 @@
-//go:build integration
-
 package objectstore_test
 
 import (
@@ -62,7 +60,8 @@ func TestStore_PutGetDelete_RoundTrip(t *testing.T) {
 	rc, err := store.GetStream(ctx, key)
 	require.NoError(t, err)
 	got, err := io.ReadAll(rc)
-	require.NoError(t, rc.Close())
+	closeErr := rc.Close()
+	require.NoError(t, closeErr)
 	require.NoError(t, err)
 	assert.Equal(t, payload, got)
 
@@ -92,7 +91,7 @@ func TestStore_PutChunk_UnknownSize(t *testing.T) {
 
 	rc, err := store.GetStream(ctx, "vault-1/secret-2")
 	require.NoError(t, err)
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	got, err := io.ReadAll(rc)
 	require.NoError(t, err)
 	assert.Equal(t, payload, got)
@@ -108,7 +107,7 @@ func TestStore_BucketCreatedOnStart_Idempotent(t *testing.T) {
 		miniomodule.WithPassword(pass),
 	)
 	require.NoError(t, err)
-	defer container.Terminate(context.Background())
+	defer func() { _ = container.Terminate(context.Background()) }()
 
 	endpoint, err := container.ConnectionString(ctx)
 	require.NoError(t, err)

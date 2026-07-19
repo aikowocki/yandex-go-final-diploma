@@ -22,10 +22,12 @@ type VaultCmd struct {
 	List   VaultListCmd   `cmd:"" help:"List vaults."`
 }
 
+// VaultCreateCmd — создание новой папки.
 type VaultCreateCmd struct {
 	Name string `arg:"" help:"Vault name."`
 }
 
+// Run создаёт новую папку с указанным именем.
 func (c *VaultCreateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -39,8 +41,10 @@ func (c *VaultCreateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *cl
 	return nil
 }
 
+// VaultListCmd — список папок аккаунта.
 type VaultListCmd struct{}
 
+// Run выводит список папок аккаунта.
 func (c *VaultListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

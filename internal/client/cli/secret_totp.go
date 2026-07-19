@@ -21,10 +21,12 @@ type TOTPCmd struct {
 	Update TOTPUpdateCmd `cmd:"" help:"Update a TOTP secret (optimistic locking; resolves conflicts)."`
 }
 
+// TOTPAddCmd — добавление секрета типа totp в папку.
 type TOTPAddCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run запрашивает поля TOTP-секрета (вручную или из otpauth:// URI) и создаёт его в папке.
 func (c *TOTPAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -46,10 +48,12 @@ func (c *TOTPAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *s
 	return nil
 }
 
+// TOTPListCmd — список секретов типа totp в папке.
 type TOTPListCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run выводит список секретов типа totp в указанной папке.
 func (c *TOTPListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -69,11 +73,11 @@ func (c *TOTPListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tISSUER")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tISSUER")
 	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Issuer)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Issuer)
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
@@ -84,6 +88,7 @@ type TOTPCodeCmd struct {
 	ID    string `arg:"" help:"Secret id (from 'secret totp list')."`
 }
 
+// Run расшифровывает секрет TOTP и печатает текущий одноразовый код.
 func (c *TOTPCodeCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -106,11 +111,13 @@ func (c *TOTPCodeCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *
 	return nil
 }
 
+// TOTPUpdateCmd — редактирование секрета totp с оптимистичной блокировкой по версии.
 type TOTPUpdateCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret totp list')."`
 }
 
+// Run обновляет секрет totp, разрешая конфликты версии при необходимости.
 func (c *TOTPUpdateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

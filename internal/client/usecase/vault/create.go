@@ -52,6 +52,7 @@ func (u *UseCase) Create(ctx context.Context, name string) (string, error) {
 		WrappedVaultKey: wrapped,
 		EncName:         encName,
 		Version:         1,
+		SyncEnabled:     true, // vault созданный пользователем — синхронизируется по умолчанию
 	}); err != nil {
 		return "", fmt.Errorf("cache vault: %w", err)
 	}

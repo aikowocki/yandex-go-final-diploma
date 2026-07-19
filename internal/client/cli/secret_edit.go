@@ -19,6 +19,7 @@ type SecretUpdateCmd struct {
 	ID    string `arg:"" help:"Secret id (from 'secret list')."`
 }
 
+// Run обновляет секрет login/password, разрешая конфликты версии при необходимости.
 func (c *SecretUpdateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -48,7 +49,7 @@ func (c *SecretUpdateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 		return err
 	}
 	if conflict != nil {
-		return resolveConflictInteractive(ctx, secret, l, conflict)
+		return resolveGenericConflictInteractive(ctx, secret, l, conflict)
 	}
 	fmt.Println(l.T("secret_updated"))
 	return nil
@@ -61,6 +62,7 @@ type SecretDeleteCmd struct {
 	Yes   bool   `help:"Skip confirmation." short:"y"`
 }
 
+// Run выполняет soft-delete секрета, разрешая конфликты версии при необходимости.
 func (c *SecretDeleteCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -95,7 +97,7 @@ func (c *SecretDeleteCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 		return err
 	}
 	if conflict != nil {
-		return resolveConflictInteractive(ctx, secret, l, conflict)
+		return resolveGenericConflictInteractive(ctx, secret, l, conflict)
 	}
 	fmt.Println(l.T("secret_deleted"))
 	return nil
@@ -107,6 +109,7 @@ type SecretSearchCmd struct {
 	Query string `arg:"" help:"Search query."`
 }
 
+// Run выполняет поиск по секретам папки и печатает совпавшие строки.
 func (c *SecretSearchCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -129,11 +132,11 @@ func (c *SecretSearchCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tUSERNAME\tURI")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tUSERNAME\tURI")
 	for _, r := range res.Rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
@@ -255,61 +258,6 @@ func printFieldMap(m map[string]any) {
 		}
 		fmt.Printf("%s: %v\n", k, v)
 	}
-}
-
-// resolveConflictInteractive показывает обе версии и просит пользователя выбрать mine/server,
-// затем применяет выбор. При выборе mine возможен повторный конфликт — цикл продолжается.
-func resolveConflictInteractive(ctx context.Context, secret *secretuc.UseCase, l *clienti18n.Localizer, conflict *secretuc.ConflictResult) error {
-	for conflict != nil {
-		printConflict(l, conflict)
-
-		choice, err := promptConflictChoice(l)
-		if err != nil {
-			return err
-		}
-
-		next, err := secret.ResolveConflict(ctx, conflict, choice)
-		if err != nil {
-			return err
-		}
-		if choice == secretuc.ChoiceServer {
-			fmt.Println(l.T("conflict_resolved_server"))
-			return nil
-		}
-		if next == nil {
-			fmt.Println(l.T("conflict_resolved_mine"))
-			return nil
-		}
-		conflict = next // mine снова упёрлось в конфликт — повторяем
-	}
-	return nil
-}
-
-// printConflict печатает обе версии секрета для сравнения пользователем.
-func printConflict(l *clienti18n.Localizer, c *secretuc.ConflictResult) {
-	fmt.Println(l.T("conflict_detected"))
-
-	fmt.Println(l.T("conflict_mine_header"))
-	if c.Mine.Row.Title == "" && c.Mine.Row.Username == "" {
-		fmt.Println(l.T("conflict_delete_intent"))
-	} else {
-		printCardBrief(l, c.Mine)
-	}
-
-	fmt.Println(l.T("conflict_server_header"))
-	printCardBrief(l, c.Server)
-}
-
-func printCardBrief(l *clienti18n.Localizer, d secretuc.Detail) {
-	fmt.Printf("%s: %s\n", l.T("label_title"), d.Row.Title)
-	fmt.Printf("%s: %s\n", l.T("label_username"), d.Row.Username)
-	if d.Row.URI != "" {
-		fmt.Printf("%s: %s\n", l.T("label_uri"), d.Row.URI)
-	}
-	if d.Index.Note != "" {
-		fmt.Printf("%s: %s\n", l.T("label_note"), d.Index.Note)
-	}
-	fmt.Printf("%s: %s\n", l.T("label_password"), d.Payload.Password)
 }
 
 // promptConflictChoice требует явного выбора: 'm' (моя) или 's' (серверная). Любой другой ввод

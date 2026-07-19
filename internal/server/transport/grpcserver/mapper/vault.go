@@ -5,6 +5,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault"
 )
 
+// CreateVaultParams параметры usecase CreateVault из proto-запроса.
 func CreateVaultParams(userID string, req *pb.CreateVaultRequest) vault.CreateParams {
 	return vault.CreateParams{
 		UserID:          userID,
@@ -13,6 +14,7 @@ func CreateVaultParams(userID string, req *pb.CreateVaultRequest) vault.CreatePa
 	}
 }
 
+// ListVaultsResponse proto-ответ ListVaults из списка папок пользователя.
 func ListVaultsResponse(vaults []vault.Tier1) *pb.ListVaultsResponse {
 	items := make([]*pb.Vault, 0, len(vaults))
 	for _, v := range vaults {
@@ -26,6 +28,7 @@ func ListVaultsResponse(vaults []vault.Tier1) *pb.ListVaultsResponse {
 	return &pb.ListVaultsResponse{Vaults: items}
 }
 
+// CheckFreshnessResponse proto-ответ CheckFreshness из списка версий папок.
 func CheckFreshnessResponse(versions []vault.Version) *pb.CheckFreshnessResponse {
 	items := make([]*pb.VaultVersion, 0, len(versions))
 	for _, v := range versions {

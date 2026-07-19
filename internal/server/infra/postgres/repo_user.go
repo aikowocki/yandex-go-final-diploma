@@ -18,6 +18,7 @@ type UserRepo struct {
 	db *DB
 }
 
+// NewUserRepo создаёт UserRepo поверх переданного пула соединений.
 func NewUserRepo(db *DB) *UserRepo {
 	return &UserRepo{db: db}
 }
@@ -26,6 +27,7 @@ func (r *UserRepo) q(ctx context.Context) *gen.Queries {
 	return gen.New(r.db.querier(ctx))
 }
 
+// Create создаёт нового пользователя, транслируя конфликт логина в auth.ErrLoginTaken.
 func (r *UserRepo) Create(ctx context.Context, u domain.User) (domain.User, error) {
 	row, err := r.q(ctx).CreateUser(ctx, gen.CreateUserParams{
 		Login:    u.Login,
@@ -40,6 +42,7 @@ func (r *UserRepo) Create(ctx context.Context, u domain.User) (domain.User, erro
 	return mapUser(row), nil
 }
 
+// GetByLogin находит пользователя по логину.
 func (r *UserRepo) GetByLogin(ctx context.Context, login string) (domain.User, error) {
 	row, err := r.q(ctx).GetUserByLogin(ctx, login)
 	if err != nil {
@@ -51,6 +54,7 @@ func (r *UserRepo) GetByLogin(ctx context.Context, login string) (domain.User, e
 	return mapUser(row), nil
 }
 
+// GetByID находит пользователя по идентификатору.
 func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) {
 	pgID, err := parseUUID(id)
 	if err != nil {
@@ -67,7 +71,8 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (domain.User, error) 
 	return mapUser(row), nil
 }
 
-func (r *UserRepo) UpdateEncKDF(ctx context.Context, userID string, salt, params []byte) error {
+// UpdateEncKDF обновляет параметры KDF и зашифрованный master key пользователя.
+func (r *UserRepo) UpdateEncKDF(ctx context.Context, userID string, salt, params, encMasterKey []byte) error {
 	pgID, err := parseUUID(userID)
 	if err != nil {
 		return auth.ErrUserNotFound
@@ -77,12 +82,14 @@ func (r *UserRepo) UpdateEncKDF(ctx context.Context, userID string, salt, params
 		ID:           pgID,
 		EncKdfSalt:   salt,
 		EncKdfParams: params,
+		EncMasterKey: encMasterKey,
 	}); err != nil {
 		return fmt.Errorf("update user enc kdf: %w", err)
 	}
 	return nil
 }
 
+// mapUser конвертирует sqlc-строку users в доменную модель domain.User.
 func mapUser(row gen.User) domain.User {
 	return domain.User{
 		ID:           uuidToString(row.ID),
@@ -90,6 +97,7 @@ func mapUser(row gen.User) domain.User {
 		AuthHash:     row.AuthHash,
 		EncKDFSalt:   row.EncKdfSalt,
 		EncKDFParams: row.EncKdfParams,
+		EncMasterKey: row.EncMasterKey,
 		TOTPSecret:   row.TotpSecret,
 		TOTPEnabled:  row.TotpEnabled,
 		CreatedAt:    row.CreatedAt.Time,

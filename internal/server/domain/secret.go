@@ -2,6 +2,7 @@ package domain
 
 import "time"
 
+// Secret запись секрета на сервере.
 type Secret struct {
 	ID         string
 	VaultID    string

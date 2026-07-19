@@ -89,6 +89,28 @@ func TestParseClientConfig_FlagOverridesJSON(t *testing.T) {
 	assert.Equal(t, "from-flag:6060", cfg.ServerAddr, "flag overrides JSON config")
 }
 
+func TestParseClientConfig_DataDirEnvOverridesJSON(t *testing.T) {
+	dataDir := t.TempDir()
+	configContent := `{"data_dir": "/from/json/config"}`
+	require.NoError(t, os.WriteFile(filepath.Join(dataDir, "config.json"), []byte(configContent), 0o600))
+
+	t.Setenv("DATA_DIR", "/from/env")
+
+	cfg, err := parseClientConfig(nil, dataDir)
+	require.NoError(t, err)
+
+	assert.Equal(t, "/from/env", cfg.DataDir, "DATA_DIR env must win over data_dir persisted in JSON config")
+}
+
+func TestParseClientConfig_DataDirFlagOverridesEnv(t *testing.T) {
+	t.Setenv("DATA_DIR", "/from/env")
+
+	cfg, err := parseClientConfig([]string{"--data-dir", "/from/flag"}, "/default/path")
+	require.NoError(t, err)
+
+	assert.Equal(t, "/from/flag", cfg.DataDir, "flag must win over DATA_DIR env")
+}
+
 func TestParseClientConfig_NoConfigFile(t *testing.T) {
 	// Директория без config.json — не должно быть ошибки
 	dataDir := t.TempDir()

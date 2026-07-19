@@ -10,6 +10,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/contracts"
 )
 
+// Store реализует contracts.BlobStorage поверх MinIO/S3.
 type Store struct {
 	client *minio.Client
 	bucket string
@@ -17,6 +18,7 @@ type Store struct {
 
 var _ contracts.BlobStorage = (*Store)(nil)
 
+// Config описывает параметры подключения к объектному хранилищу.
 type Config struct {
 	Endpoint  string
 	AccessKey string
@@ -25,6 +27,7 @@ type Config struct {
 	UseSSL    bool
 }
 
+// New создаёт клиент MinIO и при необходимости создаёт бакет.
 func New(ctx context.Context, cfg Config) (*Store, error) {
 	client, err := minio.New(cfg.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),

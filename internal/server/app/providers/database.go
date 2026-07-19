@@ -7,6 +7,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/infra/postgres"
 )
 
+// NewDatabase создаёт пул подключений к Postgres и выполняет миграции.
 func NewDatabase(ctx context.Context, cfg *config.ServerConfig) (*postgres.DB, error) {
 	db, err := postgres.NewPool(ctx, cfg.DatabaseDSN)
 	if err != nil {

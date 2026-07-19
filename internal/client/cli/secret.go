@@ -30,10 +30,12 @@ type SecretCmd struct {
 	TOTP   TOTPCmd         `cmd:"" help:"Manage type=totp secrets (authenticator codes)."`
 }
 
+// SecretAddCmd — добавление секрета типа login/password в папку.
 type SecretAddCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run запрашивает поля секрета login/password и создаёт его в указанной папке.
 func (c *SecretAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -56,11 +58,13 @@ func (c *SecretAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret 
 	return nil
 }
 
+// SecretListCmd — список секретов login/password в папке (без раскрытия паролей).
 type SecretListCmd struct {
 	Vault   string `arg:"" help:"Vault name."`
 	Refresh bool   `help:"Sync with the server before listing." short:"r"`
 }
 
+// Run выводит список секретов login/password в указанной папке.
 func (c *SecretListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, sync *syncuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -86,19 +90,21 @@ func (c *SecretListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tUSERNAME\tURI")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tUSERNAME\tURI")
 	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Username, r.Row.URI)
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
+// SecretGetCmd — раскрытие пароля секрета login/password.
 type SecretGetCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret list')."`
 }
 
+// Run расшифровывает и печатает пароль секрета login/password.
 func (c *SecretGetCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -117,11 +123,13 @@ func (c *SecretGetCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret 
 	return nil
 }
 
+// SecretShowCmd — показ полной карточки секрета login/password (все поля, включая пароль).
 type SecretShowCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret list')."`
 }
 
+// Run печатает полную карточку секрета login/password (row + index + payload).
 func (c *SecretShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

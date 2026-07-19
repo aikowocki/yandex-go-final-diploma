@@ -8,6 +8,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/transport/grpcserver/mapper"
 )
 
+// CreateSecret создаёт новый секрет в папке текущего пользователя.
 func (s *Server) CreateSecret(ctx context.Context, req *pb.CreateSecretRequest) (*pb.CreateSecretResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -21,6 +22,7 @@ func (s *Server) CreateSecret(ctx context.Context, req *pb.CreateSecretRequest) 
 	return &pb.CreateSecretResponse{SecretId: id}, nil
 }
 
+// UpdateSecret обновляет секрет с проверкой версии для обнаружения конфликтов.
 func (s *Server) UpdateSecret(ctx context.Context, req *pb.UpdateSecretRequest) (*pb.UpdateSecretResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -34,6 +36,7 @@ func (s *Server) UpdateSecret(ctx context.Context, req *pb.UpdateSecretRequest) 
 	return &pb.UpdateSecretResponse{Version: version}, nil
 }
 
+// DeleteSecret помечает секрет удалённым с проверкой версии.
 func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) (*pb.DeleteSecretResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -46,6 +49,7 @@ func (s *Server) DeleteSecret(ctx context.Context, req *pb.DeleteSecretRequest) 
 	return &pb.DeleteSecretResponse{}, nil
 }
 
+// ListRow возвращает секреты папки в виде зашифрованных строк для синхронизации.
 func (s *Server) ListRow(ctx context.Context, req *pb.ListRowRequest) (*pb.ListRowResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -59,6 +63,7 @@ func (s *Server) ListRow(ctx context.Context, req *pb.ListRowRequest) (*pb.ListR
 	return mapper.ListRowResponse(rows), nil
 }
 
+// ListIndex возвращает зашифрованные индексные записи секретов папки.
 func (s *Server) ListIndex(ctx context.Context, req *pb.ListIndexRequest) (*pb.ListIndexResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -72,6 +77,7 @@ func (s *Server) ListIndex(ctx context.Context, req *pb.ListIndexRequest) (*pb.L
 	return mapper.ListIndexResponse(items), nil
 }
 
+// GetPayload возвращает зашифрованный payload секрета.
 func (s *Server) GetPayload(ctx context.Context, req *pb.GetPayloadRequest) (*pb.GetPayloadResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {

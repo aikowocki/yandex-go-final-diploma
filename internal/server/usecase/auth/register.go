@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
-	"github.com/alexedwards/argon2id"
 )
 
+// Register создаёт новую учётную запись пользователя и выдаёт пару токенов access/refresh.
 func (u *UseCase) Register(ctx context.Context, params RegisterParams) (RegisterResult, error) {
 	if params.Login == "" {
 		return RegisterResult{}, ErrEmptyLogin
@@ -16,7 +16,7 @@ func (u *UseCase) Register(ctx context.Context, params RegisterParams) (Register
 		return RegisterResult{}, ErrEmptyPassword
 	}
 
-	hash, err := argon2id.CreateHash(string(params.LoginCredential), argon2id.DefaultParams)
+	hash, err := hashPassword(ctx, string(params.LoginCredential))
 	if err != nil {
 		return RegisterResult{}, fmt.Errorf("hash login credential: %w", err)
 	}

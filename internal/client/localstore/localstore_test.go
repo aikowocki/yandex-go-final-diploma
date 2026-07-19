@@ -69,7 +69,33 @@ func TestSecret_UpsertRowKeepsCachedPayload(t *testing.T) {
 	}))
 	require.NoError(t, ls.SetSecretPayload(ctx, "s1", []byte("pay"), 1))
 
-	// Повторный upsert строки (из sync) не должен затирать закешированный payload.
+	// Повторный upsert с ТОЙ ЖЕ версией не должен затирать закешированный payload.
+	require.NoError(t, ls.UpsertSecretRow(ctx, contracts.LocalSecret{
+		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row1-bis"), Version: 1,
+	}))
+
+	sec, ok, err := ls.GetSecret(ctx, "s1")
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, []byte("row1-bis"), sec.EncRow)
+	assert.Equal(t, int64(1), sec.Version)
+	assert.True(t, sec.PayloadLoaded)
+	assert.Equal(t, []byte("pay"), sec.EncPayload)
+}
+
+// При изменении version (sync подтянул новую версию с сервера) кешированные payload/index
+// СБРАСЫВАЮТСЯ — они зашифрованы с AAD, включающим version, и при смене version старый
+// enc_payload не расшифруется.
+func TestSecret_UpsertRowClearsPayloadOnVersionChange(t *testing.T) {
+	ctx := context.Background()
+	ls := openMem(t)
+
+	require.NoError(t, ls.UpsertSecretRow(ctx, contracts.LocalSecret{
+		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row1"), Version: 1,
+	}))
+	require.NoError(t, ls.SetSecretPayload(ctx, "s1", []byte("pay"), 1))
+
+	// Upsert с НОВОЙ версией (sync) — payload должен сброситься.
 	require.NoError(t, ls.UpsertSecretRow(ctx, contracts.LocalSecret{
 		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("row2"), Version: 2,
 	}))
@@ -79,8 +105,8 @@ func TestSecret_UpsertRowKeepsCachedPayload(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, []byte("row2"), sec.EncRow)
 	assert.Equal(t, int64(2), sec.Version)
-	assert.True(t, sec.PayloadLoaded)
-	assert.Equal(t, []byte("pay"), sec.EncPayload)
+	assert.False(t, sec.PayloadLoaded, "payload_loaded must be reset when version changes")
+	assert.Nil(t, sec.EncPayload, "enc_payload must be cleared when version changes")
 }
 
 func TestSecret_ListByVaultAndDelete(t *testing.T) {

@@ -12,6 +12,8 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/grpcclient"
 )
 
+// GenericConflict описывает конфликт версий секрета: расшифрованные локальную и серверную
+// версии данных, а также функцию для повторного применения локальной версии.
 type GenericConflict struct {
 	SecretID string
 	VaultID  string
@@ -27,6 +29,8 @@ type GenericConflict struct {
 	retryMine func(ctx context.Context, baseVersion int64) (*GenericConflict, error)
 }
 
+// GenericResolveConflict разрешает конфликт версий согласно выбору пользователя (ChoiceMine
+// повторяет запись локальной версии, ChoiceServer принимает серверную версию).
 func (u *UseCase) GenericResolveConflict(ctx context.Context, c *GenericConflict, choice ConflictChoice) (*GenericConflict, error) {
 	if c == nil {
 		return nil, ErrNilConflict
@@ -55,7 +59,7 @@ func createTyped[R, I, P any](ctx context.Context, u *UseCase, vaultID string, s
 	}
 
 	if err := u.server.CreateSecret(ctx, token, secretID, vaultID, secretType, encRow, encIndex, encPayload); err != nil {
-		if errors.Is(err, grpcclient.ErrUnavailable) {
+		if shouldFallbackOffline(err) {
 			return u.createOffline(ctx, secretID, vaultID, secretType, encRow, encIndex, encPayload)
 		}
 		return "", err
@@ -85,7 +89,7 @@ func updateTyped[R, I, P any](ctx context.Context, u *UseCase, vaultID, secretID
 		switch {
 		case errors.As(err, &conflict):
 			return buildGenericConflict(u, vaultKey, vaultID, secretID, secretType, row, index, payload, conflict.Server, false)
-		case errors.Is(err, grpcclient.ErrUnavailable):
+		case shouldFallbackOffline(err):
 			if oerr := u.updateOffline(ctx, secretID, vaultID, secretType, baseVersion, encRow, encIndex, encPayload); oerr != nil {
 				return nil, oerr
 			}
@@ -137,6 +141,33 @@ func buildGenericConflict[R, I, P any](u *UseCase, vaultKey []byte, vaultID, sec
 		serverEncPayload: server.EncPayload,
 		retryMine: func(ctx context.Context, baseVersion int64) (*GenericConflict, error) {
 			return updateTyped(ctx, u, vaultID, secretID, baseVersion, secretType, row, index, payload)
+		},
+	}, nil
+}
+
+// buildDeleteConflict собирает *GenericConflict для конфликта, возникшего при удалении секрета
+// (delete не имеет "моей" версии полей — только сервер, MineRow/Index/Payload остаются nil).
+// ChoiceMine повторяет удаление с server.Version как новым baseVersion.
+func buildDeleteConflict(u *UseCase, vaultKey []byte, vaultID, secretID string, server contracts.ServerSecret) (*GenericConflict, error) {
+	var srvRow, srvIndex, srvPayload map[string]any
+	if err := decryptTiers(u, vaultKey, vaultID, secretID, server.Version, server.EncRow, server.EncIndex, server.EncPayload, &srvRow, &srvIndex, &srvPayload); err != nil {
+		return nil, fmt.Errorf("decrypt server version: %w", err)
+	}
+
+	return &GenericConflict{
+		SecretID:         secretID,
+		VaultID:          vaultID,
+		IsDelete:         true,
+		ServerRow:        srvRow,
+		ServerIndex:      srvIndex,
+		ServerPayload:    srvPayload,
+		ServerVersion:    server.Version,
+		ServerType:       server.Type,
+		serverEncRow:     server.EncRow,
+		serverEncIndex:   server.EncIndex,
+		serverEncPayload: server.EncPayload,
+		retryMine: func(ctx context.Context, baseVersion int64) (*GenericConflict, error) {
+			return u.DeleteSecret(ctx, vaultID, secretID, baseVersion)
 		},
 	}, nil
 }

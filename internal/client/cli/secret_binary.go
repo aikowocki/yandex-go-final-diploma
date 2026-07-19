@@ -20,11 +20,13 @@ type FileCmd struct {
 	Download FileDownloadCmd `cmd:"" help:"Download and decrypt a binary secret to a local path."`
 }
 
+// FileAddCmd — загрузка локального файла.
 type FileAddCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	Path  string `arg:"" help:"Path to the local file to upload."`
 }
 
+// Run шифрует и загружает локальный файл как секрет типа binary.
 func (c *FileAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -39,7 +41,7 @@ func (c *FileAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *s
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	info, err := f.Stat()
 	if err != nil {
@@ -76,10 +78,12 @@ func (c *FileAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *s
 	return nil
 }
 
+// FileListCmd — список секретов в папке.
 type FileListCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run выводит список секретов типа binary в указанной папке.
 func (c *FileListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -99,20 +103,22 @@ func (c *FileListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tFILENAME")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tFILENAME")
 	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Filename)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Filename)
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
+// FileDownloadCmd — скачивание и расшифровка секрета в локальный файл.
 type FileDownloadCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret file list')."`
 	Out   string `arg:"" optional:"" help:"Output path. If a directory or omitted, uses the original filename."`
 }
 
+// Run скачивает и расшифровывает секрет в указанный локальный путь.
 func (c *FileDownloadCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -152,7 +158,7 @@ func (c *FileDownloadCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	if err := secret.DownloadBinary(ctx, vaultID, c.ID, out); err != nil {
 		_ = os.Remove(outPath) // не оставляем частично записанный/повреждённый файл

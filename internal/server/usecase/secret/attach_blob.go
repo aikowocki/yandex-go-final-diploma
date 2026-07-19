@@ -6,6 +6,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 )
 
+// AttachBlobParams параметры привязки blob-объекта.
 type AttachBlobParams struct {
 	UserID      string
 	SecretID    string
@@ -14,6 +15,7 @@ type AttachBlobParams struct {
 	BlobSize    int64
 }
 
+// AttachBlob привязывает загруженный blob-объект к бинарному секрету и увеличивает его версию.
 func (u *UseCase) AttachBlob(ctx context.Context, params AttachBlobParams) (int64, error) {
 	if params.UserID == "" {
 		return 0, ErrEmptyUserID

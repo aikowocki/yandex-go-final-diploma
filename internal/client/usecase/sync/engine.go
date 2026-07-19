@@ -37,6 +37,9 @@ func (u *UseCase) Sync(ctx context.Context) error {
 
 	for _, fv := range freshness {
 		lv, ok := local[fv.ID]
+		if ok && !lv.SyncEnabled {
+			continue // пользователь явно отключил синхронизацию этого vault
+		}
 		if ok && lv.SyncedVersion >= fv.Version {
 			continue // версия не изменилась — ListRow не вызываем
 		}
@@ -45,6 +48,28 @@ func (u *UseCase) Sync(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// SetVaultSyncEnabled переключает флаг «синхронизировать этот vault» в локальном кеше.
+func (u *UseCase) SetVaultSyncEnabled(ctx context.Context, vaultID string, enabled bool) error {
+	return u.local.SetVaultSyncEnabled(ctx, vaultID, enabled)
+}
+
+// kvSyncScopeChosen — kv-ключ, отмечающий, что пользователь уже прошёл экран выбора папок
+// для синхронизации (показывается один раз при первом входе, когда на сервере есть папки).
+const kvSyncScopeChosen = "sync.scope_chosen"
+
+// SyncScopeChosen сообщает, показывался ли уже пользователю экран выбора папок для синка.
+func (u *UseCase) SyncScopeChosen(ctx context.Context) bool {
+	v, ok, err := u.local.KVGet(ctx, kvSyncScopeChosen)
+	return err == nil && ok && len(v) > 0
+}
+
+// MarkSyncScopeChosen отмечает, что выбор сделан — экран больше не будет показываться
+// повторно на этом устройстве/аккаунте (сбрасывается вместе с остальным кешом при смене
+// аккаунта через WipeAccountData).
+func (u *UseCase) MarkSyncScopeChosen(ctx context.Context) error {
+	return u.local.KVSet(ctx, kvSyncScopeChosen, []byte("1"))
 }
 
 func (u *UseCase) vaultMap(ctx context.Context) (map[string]contracts.LocalVault, error) {
@@ -94,7 +119,16 @@ func (u *UseCase) pullVaultRows(ctx context.Context, token, vaultID string, vers
 	if err != nil {
 		return err
 	}
+
+	pendingIDs, err := u.outstandingSecretIDs(ctx)
+	if err != nil {
+		return err
+	}
+
 	for _, r := range rows {
+		if pendingIDs[r.ID] {
+			continue
+		}
 		if err := u.local.UpsertSecretRow(ctx, contracts.LocalSecret{
 			ID:      r.ID,
 			VaultID: vaultID,
@@ -106,4 +140,30 @@ func (u *UseCase) pullVaultRows(ctx context.Context, token, vaultID string, vers
 		}
 	}
 	return u.local.SetVaultSyncedVersion(ctx, vaultID, version)
+}
+
+// outstandingSecretIDs возвращает множество secret_id, у которых есть outbox-запись со
+// статусом pending или conflict — их локальная версия не должна затираться серверной до
+// того, как запись будет проиграна (ReplayOutbox) или конфликт разрешён явно пользователем.
+func (u *UseCase) outstandingSecretIDs(ctx context.Context) (map[string]bool, error) {
+	pending, err := u.local.ListPendingOutbox(ctx)
+	if err != nil {
+		return nil, err
+	}
+	conflicts, err := u.local.ListOutboxByStatus(ctx, contracts.OutboxStatusConflict)
+	if err != nil {
+		return nil, err
+	}
+	ids := make(map[string]bool, len(pending)+len(conflicts))
+	for _, e := range pending {
+		if e.Entity == "secret" {
+			ids[e.EntityID] = true
+		}
+	}
+	for _, e := range conflicts {
+		if e.Entity == "secret" {
+			ids[e.EntityID] = true
+		}
+	}
+	return ids, nil
 }

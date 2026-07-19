@@ -1,7 +1,9 @@
 package secretcontent
 
+// BankCardSchemaV1 — версия схемы секрета банковской карты.
 const BankCardSchemaV1 = 1
 
+// BankCardRow содержит данные банковской карты уровня Tier 2a (row).
 type BankCardRow struct {
 	V     int      `json:"v"`
 	Title string   `json:"title"`
@@ -9,6 +11,7 @@ type BankCardRow struct {
 	Last4 string   `json:"last4,omitempty"`
 }
 
+// BankCardIndex содержит данные банковской карты уровня Tier 2b (index).
 type BankCardIndex struct {
 	V            int        `json:"v"`
 	Bank         string     `json:"bank,omitempty"`
@@ -19,6 +22,7 @@ type BankCardIndex struct {
 	CustomFields []KeyValue `json:"custom_fields,omitempty"`
 }
 
+// BankCardPayload содержит данные банковской карты уровня Tier 3 (payload).
 type BankCardPayload struct {
 	V        int       `json:"v"`
 	PAN      string    `json:"pan"`

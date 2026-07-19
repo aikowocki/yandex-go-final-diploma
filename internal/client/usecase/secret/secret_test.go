@@ -25,7 +25,7 @@ func newSecretUC(t *testing.T, server contracts.ServerClient, sess *session.Sess
 func newSecretUCStore(t *testing.T, server contracts.ServerClient, sess *session.Session, local *localstore.Store) *secret.UseCase {
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "tok"}, nil).Maybe()
-	return secret.New(server, cryptoimpl.Crypto{}, store, sess, local)
+	return secret.New(server, cryptoimpl.Crypto{}, store, sess, local, t.TempDir())
 }
 
 // newMemStore открывает in-memory localstore и закрывает его по завершении теста.

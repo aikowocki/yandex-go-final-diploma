@@ -19,11 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Ping_FullMethodName            = "/gophkeeper.v1.AuthService/Ping"
-	AuthService_Register_FullMethodName        = "/gophkeeper.v1.AuthService/Register"
-	AuthService_SetupEncryption_FullMethodName = "/gophkeeper.v1.AuthService/SetupEncryption"
-	AuthService_Login_FullMethodName           = "/gophkeeper.v1.AuthService/Login"
-	AuthService_RefreshToken_FullMethodName    = "/gophkeeper.v1.AuthService/RefreshToken"
+	AuthService_Ping_FullMethodName                 = "/gophkeeper.v1.AuthService/Ping"
+	AuthService_Register_FullMethodName             = "/gophkeeper.v1.AuthService/Register"
+	AuthService_SetupEncryption_FullMethodName      = "/gophkeeper.v1.AuthService/SetupEncryption"
+	AuthService_Login_FullMethodName                = "/gophkeeper.v1.AuthService/Login"
+	AuthService_RefreshToken_FullMethodName         = "/gophkeeper.v1.AuthService/RefreshToken"
+	AuthService_StoreRecoveryCodes_FullMethodName   = "/gophkeeper.v1.AuthService/StoreRecoveryCodes"
+	AuthService_GetRecoveryBlob_FullMethodName      = "/gophkeeper.v1.AuthService/GetRecoveryBlob"
+	AuthService_MarkRecoveryCodeUsed_FullMethodName = "/gophkeeper.v1.AuthService/MarkRecoveryCodeUsed"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -37,6 +40,10 @@ type AuthServiceClient interface {
 	SetupEncryption(ctx context.Context, in *SetupEncryptionRequest, opts ...grpc.CallOption) (*SetupEncryptionResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*RefreshTokenResponse, error)
+	// Recovery codes — одноразовые коды восстановления MasterKey.
+	StoreRecoveryCodes(ctx context.Context, in *StoreRecoveryCodesRequest, opts ...grpc.CallOption) (*StoreRecoveryCodesResponse, error)
+	GetRecoveryBlob(ctx context.Context, in *GetRecoveryBlobRequest, opts ...grpc.CallOption) (*GetRecoveryBlobResponse, error)
+	MarkRecoveryCodeUsed(ctx context.Context, in *MarkRecoveryCodeUsedRequest, opts ...grpc.CallOption) (*MarkRecoveryCodeUsedResponse, error)
 }
 
 type authServiceClient struct {
@@ -97,6 +104,36 @@ func (c *authServiceClient) RefreshToken(ctx context.Context, in *RefreshTokenRe
 	return out, nil
 }
 
+func (c *authServiceClient) StoreRecoveryCodes(ctx context.Context, in *StoreRecoveryCodesRequest, opts ...grpc.CallOption) (*StoreRecoveryCodesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StoreRecoveryCodesResponse)
+	err := c.cc.Invoke(ctx, AuthService_StoreRecoveryCodes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) GetRecoveryBlob(ctx context.Context, in *GetRecoveryBlobRequest, opts ...grpc.CallOption) (*GetRecoveryBlobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRecoveryBlobResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetRecoveryBlob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) MarkRecoveryCodeUsed(ctx context.Context, in *MarkRecoveryCodeUsedRequest, opts ...grpc.CallOption) (*MarkRecoveryCodeUsedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkRecoveryCodeUsedResponse)
+	err := c.cc.Invoke(ctx, AuthService_MarkRecoveryCodeUsed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -108,6 +145,10 @@ type AuthServiceServer interface {
 	SetupEncryption(context.Context, *SetupEncryptionRequest) (*SetupEncryptionResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error)
+	// Recovery codes — одноразовые коды восстановления MasterKey.
+	StoreRecoveryCodes(context.Context, *StoreRecoveryCodesRequest) (*StoreRecoveryCodesResponse, error)
+	GetRecoveryBlob(context.Context, *GetRecoveryBlobRequest) (*GetRecoveryBlobResponse, error)
+	MarkRecoveryCodeUsed(context.Context, *MarkRecoveryCodeUsedRequest) (*MarkRecoveryCodeUsedResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -132,6 +173,15 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*RefreshTokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (UnimplementedAuthServiceServer) StoreRecoveryCodes(context.Context, *StoreRecoveryCodesRequest) (*StoreRecoveryCodesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StoreRecoveryCodes not implemented")
+}
+func (UnimplementedAuthServiceServer) GetRecoveryBlob(context.Context, *GetRecoveryBlobRequest) (*GetRecoveryBlobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRecoveryBlob not implemented")
+}
+func (UnimplementedAuthServiceServer) MarkRecoveryCodeUsed(context.Context, *MarkRecoveryCodeUsedRequest) (*MarkRecoveryCodeUsedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkRecoveryCodeUsed not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -244,6 +294,60 @@ func _AuthService_RefreshToken_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_StoreRecoveryCodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StoreRecoveryCodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).StoreRecoveryCodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_StoreRecoveryCodes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).StoreRecoveryCodes(ctx, req.(*StoreRecoveryCodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_GetRecoveryBlob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRecoveryBlobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetRecoveryBlob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetRecoveryBlob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetRecoveryBlob(ctx, req.(*GetRecoveryBlobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_MarkRecoveryCodeUsed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkRecoveryCodeUsedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).MarkRecoveryCodeUsed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_MarkRecoveryCodeUsed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).MarkRecoveryCodeUsed(ctx, req.(*MarkRecoveryCodeUsedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -270,6 +374,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshToken",
 			Handler:    _AuthService_RefreshToken_Handler,
+		},
+		{
+			MethodName: "StoreRecoveryCodes",
+			Handler:    _AuthService_StoreRecoveryCodes_Handler,
+		},
+		{
+			MethodName: "GetRecoveryBlob",
+			Handler:    _AuthService_GetRecoveryBlob_Handler,
+		},
+		{
+			MethodName: "MarkRecoveryCodeUsed",
+			Handler:    _AuthService_MarkRecoveryCodeUsed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

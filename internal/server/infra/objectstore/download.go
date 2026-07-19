@@ -8,6 +8,7 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
+// GetStream открывает потоковое чтение объекта по ключу.
 func (s *Store) GetStream(ctx context.Context, key string) (io.ReadCloser, error) {
 	obj, err := s.client.GetObject(ctx, s.bucket, key, minio.GetObjectOptions{})
 	if err != nil {
@@ -16,6 +17,7 @@ func (s *Store) GetStream(ctx context.Context, key string) (io.ReadCloser, error
 	return obj, nil
 }
 
+// Delete удаляет объект по ключу из хранилища.
 func (s *Store) Delete(ctx context.Context, key string) error {
 	if err := s.client.RemoveObject(ctx, s.bucket, key, minio.RemoveObjectOptions{}); err != nil {
 		return fmt.Errorf("objectstore: delete object %q: %w", key, err)

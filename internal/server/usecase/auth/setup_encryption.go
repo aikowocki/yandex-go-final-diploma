@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// SetupEncryption сохраняет параметры KDF и зашифрованный мастер-ключ пользователя.
 func (u *UseCase) SetupEncryption(ctx context.Context, params SetupEncryptionParams) error {
 	_, err := u.users.GetByID(ctx, params.UserID)
 	if errors.Is(err, ErrUserNotFound) {
@@ -15,7 +16,7 @@ func (u *UseCase) SetupEncryption(ctx context.Context, params SetupEncryptionPar
 		return fmt.Errorf("get user by id: %w", err)
 	}
 
-	if err := u.users.UpdateEncKDF(ctx, params.UserID, params.EncKDFSalt, params.EncKDFParams); err != nil {
+	if err := u.users.UpdateEncKDF(ctx, params.UserID, params.EncKDFSalt, params.EncKDFParams, params.EncMasterKey); err != nil {
 		return fmt.Errorf("update enc kdf: %w", err)
 	}
 

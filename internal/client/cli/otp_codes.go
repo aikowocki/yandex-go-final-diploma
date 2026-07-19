@@ -54,6 +54,7 @@ type OTPUseCmd struct {
 	Index int    `arg:"" help:"Code number (1-based, from 'secret show' output)."`
 }
 
+// Run помечает указанный одноразовый код восстановления как использованный.
 func (c *OTPUseCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

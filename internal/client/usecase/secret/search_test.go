@@ -86,3 +86,30 @@ func TestLoadIndexes_ThenSearchByNote(t *testing.T) {
 	assert.Equal(t, "s1", res.Rows[0].ID)
 	assert.False(t, res.Incomplete)
 }
+
+// Регрессия: один секрет с повреждённым/рассинхронизированным шифротекстом (например после
+// гонки конфликтов синхронизации — enc_row остался под старой версией/AAD) не должен обрывать
+// поиск по всей папке.
+func TestSearch_SkipsBrokenSecret_KeepsOthers(t *testing.T) {
+	sess, vaultKey := openVaultSession(t, "v1")
+	local := newMemStore(t)
+	seedRow(t, local, vaultKey, "v1", "s1", "GitHub", "alice")
+	seedRow(t, local, vaultKey, "v1", "s2", "Gmail", "bob")
+
+	// s3 — битый секрет: enc_row зашифрован под ДРУГУЮ версию, чем та, что хранится в кеше
+	// (эмулирует рассинхрон AAD/version после гонки конфликтов).
+	c := cryptoimpl.Crypto{}
+	staleEncRow, err := c.EncryptStruct(vaultKey, secret.SecretAAD("v1", "s3", 1, secret.TierRow),
+		secretcontent.LoginPasswordRow{V: 1, Title: "Broken"})
+	require.NoError(t, err)
+	require.NoError(t, local.UpsertSecretRow(context.Background(), contracts.LocalSecret{
+		ID: "s3", VaultID: "v1", Type: 1, EncRow: staleEncRow, Version: 2, // версия не совпадает с AAD (1)
+	}))
+
+	uc := newSecretUCStore(t, mocks.NewMockServerClient(t), sess, local)
+
+	res, err := uc.Search(context.Background(), "v1", "")
+	require.NoError(t, err, "битый секрет не должен приводить к ошибке всего поиска")
+	require.Len(t, res.Rows, 2, "здоровые секреты (s1, s2) должны остаться в результате")
+
+}

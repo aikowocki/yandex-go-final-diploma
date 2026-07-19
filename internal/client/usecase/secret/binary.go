@@ -2,10 +2,13 @@ package secret
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 
+	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/cryptoimpl"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
@@ -14,6 +17,7 @@ import (
 // binaryStreamChunkSize — размер чанка потокового AEAD при шифровании файла на диске Компромисс память/накладные расходы AEAD-тега на чанк.
 const binaryStreamChunkSize = 256 * 1024
 
+// CreateBinaryInput описывает входные данные для создания бинарного секрета (файла).
 type CreateBinaryInput struct {
 	Title        string
 	Tags         []string
@@ -40,6 +44,8 @@ func (in CreateBinaryInput) toPayload() secretcontent.BinaryPayload {
 	return secretcontent.BinaryPayload{V: secretcontent.BinarySchemaV1, OTPCodes: in.OTPCodes}
 }
 
+// CreateBinary создаёт бинарный секрет: сохраняет метаданные, помещает файл
+// во временное хранилище и загружает его содержимое на сервер в виде blob.
 func (u *UseCase) CreateBinary(ctx context.Context, vaultID string, input CreateBinaryInput) (string, error) {
 	if input.Title == "" {
 		return "", ErrEmptyTitle
@@ -60,14 +66,34 @@ func (u *UseCase) CreateBinary(ctx context.Context, vaultID string, input Create
 		return "", err
 	}
 
-	blobRef, blobSize, err := u.uploadBinaryData(ctx, token, vaultKey, vaultID, secretID, input.Data)
+	// Помещаем файл в pending_uploads/<secretID>/<filename>. Это позволяет
+	// повторить загрузку через outbox, если upload завершится ошибкой.
+	// Исходный файл может быть удалён пользователем.
+	stagedPath, stageErr := StageFile(u.dataDir, secretID, input.Filename, input.Data)
+	if stageErr != nil {
+		return secretID, fmt.Errorf("secret created but staging failed (secret_id=%s): %w", secretID, stageErr)
+	}
+
+	// Загружаем blob из staged-файла.
+	stagedFile, err := os.Open(stagedPath)
 	if err != nil {
+		return secretID, fmt.Errorf("secret created but open staged file failed (secret_id=%s): %w", secretID, err)
+	}
+	defer func() { _ = stagedFile.Close() }()
+
+	blobRef, blobSize, err := u.uploadBinaryData(ctx, token, vaultKey, vaultID, secretID, stagedFile)
+	if err != nil {
+		// При ошибке загрузки staged-файл остаётся, чтобы outbox мог повторить операцию.
+		_ = u.enqueueBlobUpload(ctx, secretID, vaultID)
 		return secretID, fmt.Errorf("secret created but blob upload failed (secret_id=%s): %w", secretID, err)
 	}
 
 	if _, err := u.server.AttachBlob(ctx, token, secretID, createVersion, blobRef, blobSize); err != nil {
+		_ = u.enqueueBlobUpload(ctx, secretID, vaultID)
 		return secretID, fmt.Errorf("secret created, blob uploaded, but AttachBlob failed (secret_id=%s, blob_ref=%s): %w", secretID, blobRef, err)
 	}
+
+	CleanupStaged(u.dataDir, secretID)
 	return secretID, nil
 }
 
@@ -97,8 +123,21 @@ func (u *UseCase) uploadBinaryData(ctx context.Context, token string, vaultKey [
 	return blobRef, blobSize, nil
 }
 
+// enqueueBlobUpload ставит в outbox задачу повторной загрузки blob'а (staged файл уже на диске).
+func (u *UseCase) enqueueBlobUpload(ctx context.Context, secretID, vaultID string) error {
+	payload, _ := json.Marshal(contracts.OutboxBlobUpload{SecretID: secretID, VaultID: vaultID})
+	_, err := u.local.EnqueueOutbox(ctx, contracts.OutboxEntry{
+		Op:       contracts.OutboxOpBlobUpload,
+		Entity:   "secret",
+		EntityID: secretID,
+		Payload:  payload,
+		Status:   contracts.OutboxStatusPending,
+	})
+	return err
+}
+
 func encodeStream(enc *cryptoimpl.StreamEncrypter, data io.Reader, w io.WriteCloser) error {
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	if err := writeFrame(w, enc.StreamID()); err != nil {
 		return err
@@ -139,6 +178,7 @@ func encodeStream(enc *cryptoimpl.StreamEncrypter, data io.Reader, w io.WriteClo
 	}
 }
 
+// DownloadBinary скачивает и расшифровывает содержимое бинарного секрета, записывая его в w.
 func (u *UseCase) DownloadBinary(ctx context.Context, vaultID, secretID string, w io.Writer) error {
 	vaultKey, token, err := u.vaultContext(vaultID)
 	if err != nil {
@@ -158,18 +198,53 @@ func (u *UseCase) DownloadBinary(ctx context.Context, vaultID, secretID string, 
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	ad := secretAAD(vaultID, secretID, version, "blob")
 	return decodeStream(vaultKey, ad, rc, w)
 }
 
+// ListBinaryRows возвращает строки (row-тир) всех бинарных секретов в папке.
 func (u *UseCase) ListBinaryRows(ctx context.Context, vaultID string) ([]TypedRow[secretcontent.BinaryRow], error) {
 	return listRowsTyped[secretcontent.BinaryRow](ctx, u, vaultID, int32(domain.SecretTypeBinary))
 }
 
+// GetBinaryDetail возвращает полностью расшифрованный секрет.
 func (u *UseCase) GetBinaryDetail(ctx context.Context, vaultID, secretID string) (TypedDetail[secretcontent.BinaryRow, secretcontent.BinaryIndex, secretcontent.BinaryPayload], error) {
 	return getDetailTyped[secretcontent.BinaryRow, secretcontent.BinaryIndex, secretcontent.BinaryPayload](ctx, u, vaultID, secretID)
+}
+
+// RetryBlobUpload повторяет загрузку blob'а из staging (вызывается из sync.ReplayOutbox).
+// Открывает staged файл, шифрует и стримит на сервер, после успеха вызывает AttachBlob и
+// очищает staging.
+func (u *UseCase) RetryBlobUpload(ctx context.Context, secretID, vaultID string) error {
+	stagedPath, err := StagedFilePath(u.dataDir, secretID)
+	if err != nil {
+		return fmt.Errorf("retry blob upload: %w", err)
+	}
+
+	vaultKey, token, err := u.vaultContext(vaultID)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(stagedPath)
+	if err != nil {
+		return fmt.Errorf("retry blob upload: open staged file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	blobRef, blobSize, err := u.uploadBinaryData(ctx, token, vaultKey, vaultID, secretID, f)
+	if err != nil {
+		return err
+	}
+
+	if _, err := u.server.AttachBlob(ctx, token, secretID, createVersion, blobRef, blobSize); err != nil {
+		return err
+	}
+
+	CleanupStaged(u.dataDir, secretID)
+	return nil
 }
 
 func decodeStream(key, ad []byte, r io.Reader, w io.Writer) error {

@@ -17,6 +17,7 @@ packages:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/auth:
     interfaces:
       Repository:
+      RecoveryRepository:
       TokenIssuer:
       TxManager:
   github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/vault:

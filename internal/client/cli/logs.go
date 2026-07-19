@@ -14,6 +14,7 @@ type LogsCmd struct {
 	Clear bool `help:"Clear the log file." short:"c"`
 }
 
+// Run печатает/очищает содержимое клиентского лог-файла.
 func (c *LogsCmd) Run(cfg *config.ClientConfig) error {
 	logPath := filepath.Join(cfg.DataDir, "client.log")
 

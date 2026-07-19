@@ -16,6 +16,7 @@ type BuildInfo struct {
 // PingCmd — проверка связности с сервером.
 type PingCmd struct{}
 
+// Run проверяет связность с сервером через gRPC Ping.
 func (c *PingCmd) Run(client *grpcclient.Client) error {
 	msg, err := client.Ping(context.Background())
 	if err != nil {
@@ -28,6 +29,7 @@ func (c *PingCmd) Run(client *grpcclient.Client) error {
 // VersionCmd — печать версии клиента.
 type VersionCmd struct{}
 
+// Run печатает версию и дату сборки клиента.
 func (c *VersionCmd) Run(info *BuildInfo) error {
 	fmt.Printf("gophkeeper-client %s (built %s)\n", info.Version, info.Date)
 	return nil

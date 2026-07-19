@@ -29,7 +29,7 @@ func NewGRPC(cfg *config.ServerConfig, db *postgres.DB, objectStore *objectstore
 
 	vaultRepo := postgres.NewVaultRepo(db)
 	secretRepo := postgres.NewSecretRepo(db)
-	authUseCase := auth.New(postgres.NewUserRepo(db), tokens, postgres.NewTxManager(db))
+	authUseCase := auth.New(postgres.NewUserRepo(db), postgres.NewRecoveryRepo(db), tokens, postgres.NewTxManager(db))
 	vaultUseCase := vault.New(vaultRepo)
 	secretUseCase := secret.New(secretRepo, vaultRepo, postgres.NewTxManager(db))
 

@@ -36,11 +36,17 @@ func TestSync_FreshPull(t *testing.T) {
 	ctx := context.Background()
 	local := openMem(t)
 
+	// Vault уже отмечен для синхронизации (пользователь выбрал его в scope-попапе).
+	// Новые vault'ы по умолчанию SyncEnabled=false и не тянутся, пока не включены.
+	require.NoError(t, local.UpsertVault(ctx, contracts.LocalVault{
+		ID: "v1", WrappedVaultKey: []byte("w"), EncName: []byte("n"), Version: 1, SyncEnabled: true,
+	}))
+
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().CheckFreshness(mock.Anything, "tok").
 		Return([]contracts.VaultVersion{{ID: "v1", Version: 2}}, nil)
 	server.EXPECT().ListVaults(mock.Anything, "tok").
-		Return([]contracts.VaultItem{{ID: "v1", WrappedVaultKey: []byte("w"), EncName: []byte("n"), Version: 2}}, nil)
+		Return([]contracts.VaultItem{{ID: "v1", WrappedVaultKey: []byte("w"), EncName: []byte("n"), Version: 2}}, nil).Maybe()
 	server.EXPECT().ListSecretRows(mock.Anything, "tok", "v1").
 		Return([]contracts.SecretRowItem{{ID: "s1", Type: 1, Version: 2, EncRow: []byte("row")}}, nil)
 
@@ -140,4 +146,52 @@ func TestReplayOutbox_UpdateConflictMarksEntry(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 	assert.Equal(t, contracts.OutboxStatusConflict, entry.Status)
+}
+
+// Регрессия: секрет с outbox-записью status=conflict (после неудачного ReplayOutbox — гонка
+// версий с другим клиентом) не должен молча затираться серверной версией при следующем Sync.
+func TestSync_DoesNotOverwriteSecretWithPendingConflict(t *testing.T) {
+	ctx := context.Background()
+	local := openMem(t)
+
+	require.NoError(t, local.UpsertVault(ctx, contracts.LocalVault{
+		ID: "v1", WrappedVaultKey: []byte("w"), EncName: []byte("n"), Version: 1, SyncEnabled: true,
+	}))
+	// Локальная (моя) версия секрета — dirty, версия 6 (baseVersion=5 + 1).
+	require.NoError(t, local.UpsertSecretRow(ctx, contracts.LocalSecret{
+		ID: "s1", VaultID: "v1", Type: 1, EncRow: []byte("mine-row"), Version: 6, Dirty: true,
+	}))
+	body, err := json.Marshal(contracts.OutboxSecretUpdate{
+		SecretID: "s1", VaultID: "v1", BaseVersion: 5, Type: 1, EncRow: []byte("mine-row"),
+	})
+	require.NoError(t, err)
+	_, err = local.EnqueueOutbox(ctx, contracts.OutboxEntry{
+		Op: contracts.OutboxOpUpdate, Entity: "secret", EntityID: "s1", BaseVersion: 5,
+		Payload: body, Status: contracts.OutboxStatusConflict,
+	})
+	require.NoError(t, err)
+
+	// Сервер уже применил чужую (другого клиента) версию 7.
+	server := mocks.NewMockServerClient(t)
+	server.EXPECT().CheckFreshness(mock.Anything, "tok").
+		Return([]contracts.VaultVersion{{ID: "v1", Version: 7}}, nil)
+	server.EXPECT().ListSecretRows(mock.Anything, "tok", "v1").
+		Return([]contracts.SecretRowItem{{ID: "s1", Type: 1, Version: 7, EncRow: []byte("their-row")}}, nil)
+
+	require.NoError(t, newSyncUC(t, server, local).Sync(ctx))
+
+	// Локальная строка секрета не тронута — версия/enc_row/dirty остались моими.
+	sec, ok, err := local.GetSecret(ctx, "s1")
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, int64(6), sec.Version, "версия не должна перезаписаться, пока конфликт не разрешён")
+	assert.Equal(t, []byte("mine-row"), sec.EncRow)
+	assert.True(t, sec.Dirty)
+
+	// Синхронизированная версия папки всё же продвинулась (остальные секреты той же папки
+	// должны продолжать синхронизироваться нормально).
+	v, ok, err := local.GetVault(ctx, "v1")
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, int64(7), v.SyncedVersion)
 }

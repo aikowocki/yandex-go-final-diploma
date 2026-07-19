@@ -78,8 +78,32 @@ tasks:
     cmds:
       - docker compose down
 
-  coverage:
-    desc: Run tests with coverage (excluding generated code)
+  docker-reset:
+    desc: Полный сброс — остановить, удалить volumes (БД + MinIO), пересобрать и поднять заново
+    dir: deployments
     cmds:
-      - go test ./... -coverpkg=./internal/...,./pkg/... -coverprofile=coverage.out
-      - go tool cover -func=coverage.out | grep -v "/gen/" | tail -1
+      - docker compose down -v
+      - docker compose up --build -d
+
+  lint:
+    desc: Прогнать golangci-lint (включая проверку документации экспортируемых сущностей)
+    cmds:
+      - golangci-lint run ./...
+
+  install-go-test-coverage:
+    desc: Установить go-test-coverage (для проверки порога покрытия, исключая generated-код)
+    cmds:
+      - go install github.com/vladopajic/go-test-coverage/v2@latest
+
+  coverage:
+    desc: Прогнать тесты с покрытием и проверить порог
+    deps: [install-go-test-coverage]
+    cmds:
+      - go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+      - '{{.GOBIN}}/go-test-coverage --config=./.testcoverage.yml'
+    vars:
+      GOBIN:
+        sh: go env GOPATH | xargs -I{} echo {}/bin
+
+  cover:
+   go-test-coverage --config=./.testcoverage.yml 2>&1 | grep -i "total test coverage\|threshold"

@@ -26,6 +26,7 @@ func (l *migrationLogger) Verbose() bool {
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+// RunMigrations применяет все встроенные SQL-миграции к базе по указанному DSN.
 func RunMigrations(dsn string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

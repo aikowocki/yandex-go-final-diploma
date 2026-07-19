@@ -14,7 +14,12 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/blob"
 )
 
+// UploadBlob — client-streaming RPC: принимает чанки бинарного секрета от клиента и сохраняет их в хранилище.
 func (s *Server) UploadBlob(stream pb.BlobService_UploadBlobServer) error {
+	if s.blob == nil {
+		return mapBlobErr(blob.ErrBlobStorageDisabled)
+	}
+
 	ctx := stream.Context()
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -33,7 +38,7 @@ func (s *Server) UploadBlob(stream pb.BlobService_UploadBlobServer) error {
 	pr, pw := io.Pipe()
 	recvErrCh := make(chan error, 1)
 	go func() {
-		defer pw.Close()
+		defer func() { _ = pw.Close() }()
 		if _, werr := pw.Write(first.GetData()); werr != nil {
 			recvErrCh <- werr
 			return
@@ -68,6 +73,10 @@ func (s *Server) UploadBlob(stream pb.BlobService_UploadBlobServer) error {
 
 // DownloadBlob — server-streaming RPC: читает объект из хранилища и отдаёт его клиенту чанками.
 func (s *Server) DownloadBlob(req *pb.DownloadBlobRequest, stream pb.BlobService_DownloadBlobServer) error {
+	if s.blob == nil {
+		return mapBlobErr(blob.ErrBlobStorageDisabled)
+	}
+
 	ctx := stream.Context()
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -78,7 +87,7 @@ func (s *Server) DownloadBlob(req *pb.DownloadBlobRequest, stream pb.BlobService
 	if err != nil {
 		return mapBlobErr(err)
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	buf := make([]byte, downloadChunkSize)
 	for {
@@ -101,6 +110,7 @@ func (s *Server) DownloadBlob(req *pb.DownloadBlobRequest, stream pb.BlobService
 // потокового AEAD клиента — тот определяется клиентом при шифровании).
 const downloadChunkSize = 64 * 1024
 
+// AttachBlob привязывает загруженный blob (по ссылке и размеру) к секрету и поднимает версию.
 func (s *Server) AttachBlob(ctx context.Context, req *pb.AttachBlobRequest) (*pb.AttachBlobResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {

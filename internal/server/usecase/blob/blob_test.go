@@ -107,7 +107,7 @@ func TestDownloadChunked_Success(t *testing.T) {
 	uc := blob.New(storage, lookup)
 	rc, err := uc.DownloadChunked(context.Background(), "user-1", "secret-1")
 	require.NoError(t, err)
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	got, err := io.ReadAll(rc)
 	require.NoError(t, err)

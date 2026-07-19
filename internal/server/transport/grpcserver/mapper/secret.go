@@ -6,6 +6,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/usecase/secret"
 )
 
+// CreateSecretParams параметры usecase CreateSecret из proto-запроса.
 func CreateSecretParams(userID string, req *pb.CreateSecretRequest) secret.CreateParams {
 	return secret.CreateParams{
 		UserID:     userID,
@@ -18,6 +19,7 @@ func CreateSecretParams(userID string, req *pb.CreateSecretRequest) secret.Creat
 	}
 }
 
+// UpdateSecretParams параметры usecase UpdateSecret из proto-запроса.
 func UpdateSecretParams(userID string, req *pb.UpdateSecretRequest) secret.UpdateParams {
 	return secret.UpdateParams{
 		UserID:      userID,
@@ -29,6 +31,7 @@ func UpdateSecretParams(userID string, req *pb.UpdateSecretRequest) secret.Updat
 	}
 }
 
+// DeleteSecretParams параметры usecase DeleteSecret из proto-запроса.
 func DeleteSecretParams(userID string, req *pb.DeleteSecretRequest) secret.DeleteParams {
 	return secret.DeleteParams{
 		UserID:      userID,
@@ -37,6 +40,7 @@ func DeleteSecretParams(userID string, req *pb.DeleteSecretRequest) secret.Delet
 	}
 }
 
+// AttachBlobParams параметры usecase AttachBlob из proto-запроса.
 func AttachBlobParams(userID string, req *pb.AttachBlobRequest) secret.AttachBlobParams {
 	return secret.AttachBlobParams{
 		UserID:      userID,
@@ -47,7 +51,7 @@ func AttachBlobParams(userID string, req *pb.AttachBlobRequest) secret.AttachBlo
 	}
 }
 
-// SecretConflictDetail строит proto-деталь конфликта из полной серверной версии секрета.
+// SecretConflictDetail proto-деталь конфликта из полной серверной версии секрета.
 func SecretConflictDetail(s domain.Secret) *pb.SecretConflict {
 	return &pb.SecretConflict{
 		SecretId:   s.ID,
@@ -59,6 +63,7 @@ func SecretConflictDetail(s domain.Secret) *pb.SecretConflict {
 	}
 }
 
+// ListRowResponse proto-ответ ListRow из списка строк секретов.
 func ListRowResponse(rows []secret.Row) *pb.ListRowResponse {
 	items := make([]*pb.SecretRow, 0, len(rows))
 	for _, r := range rows {
@@ -72,6 +77,7 @@ func ListRowResponse(rows []secret.Row) *pb.ListRowResponse {
 	return &pb.ListRowResponse{Secrets: items}
 }
 
+// ListIndexResponse proto-ответ ListIndex из списка индексных записей.
 func ListIndexResponse(rows []secret.IndexItem) *pb.ListIndexResponse {
 	items := make([]*pb.SecretIndex, 0, len(rows))
 	for _, r := range rows {
@@ -84,6 +90,7 @@ func ListIndexResponse(rows []secret.IndexItem) *pb.ListIndexResponse {
 	return &pb.ListIndexResponse{Secrets: items}
 }
 
+// GetPayloadResponse proto-ответ GetPayload из результата usecase.
 func GetPayloadResponse(p secret.Payload) *pb.GetPayloadResponse {
 	return &pb.GetPayloadResponse{
 		SecretId:   p.ID,

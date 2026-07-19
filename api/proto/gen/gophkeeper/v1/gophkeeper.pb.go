@@ -1797,6 +1797,7 @@ type SetupEncryptionRequest struct {
 	// user_id берётся из access-токена (JWT-интерцептор), в запросе не передаётся.
 	EncKdfSalt    []byte `protobuf:"bytes,1,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
 	EncKdfParams  []byte `protobuf:"bytes,2,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"` // JSON crypto.Params
+	EncMasterKey  []byte `protobuf:"bytes,3,opt,name=enc_master_key,json=encMasterKey,proto3" json:"enc_master_key,omitempty"` // случайный MasterKey, обёрнутый KEK
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1841,6 +1842,13 @@ func (x *SetupEncryptionRequest) GetEncKdfSalt() []byte {
 func (x *SetupEncryptionRequest) GetEncKdfParams() []byte {
 	if x != nil {
 		return x.EncKdfParams
+	}
+	return nil
+}
+
+func (x *SetupEncryptionRequest) GetEncMasterKey() []byte {
+	if x != nil {
+		return x.EncMasterKey
 	}
 	return nil
 }
@@ -1939,7 +1947,8 @@ type LoginResponse struct {
 	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	EncKdfSalt    []byte                 `protobuf:"bytes,3,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
 	EncKdfParams  []byte                 `protobuf:"bytes,4,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"`
-	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                     // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+	EncMasterKey  []byte                 `protobuf:"bytes,6,opt,name=enc_master_key,json=encMasterKey,proto3" json:"enc_master_key,omitempty"` // MasterKey, обёрнутый KEK
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2009,6 +2018,13 @@ func (x *LoginResponse) GetUserId() string {
 	return ""
 }
 
+func (x *LoginResponse) GetEncMasterKey() []byte {
+	if x != nil {
+		return x.EncMasterKey
+	}
+	return nil
+}
+
 type RefreshTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RefreshToken  string                 `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
@@ -2059,7 +2075,8 @@ type RefreshTokenResponse struct {
 	RefreshToken  string                 `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	EncKdfSalt    []byte                 `protobuf:"bytes,3,opt,name=enc_kdf_salt,json=encKdfSalt,proto3" json:"enc_kdf_salt,omitempty"`
 	EncKdfParams  []byte                 `protobuf:"bytes,4,opt,name=enc_kdf_params,json=encKdfParams,proto3" json:"enc_kdf_params,omitempty"`
-	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+	UserId        string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                     // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+	EncMasterKey  []byte                 `protobuf:"bytes,6,opt,name=enc_master_key,json=encMasterKey,proto3" json:"enc_master_key,omitempty"` // MasterKey, обёрнутый KEK
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2127,6 +2144,313 @@ func (x *RefreshTokenResponse) GetUserId() string {
 		return x.UserId
 	}
 	return ""
+}
+
+func (x *RefreshTokenResponse) GetEncMasterKey() []byte {
+	if x != nil {
+		return x.EncMasterKey
+	}
+	return nil
+}
+
+type RecoveryCodeEntry struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CodeId        string                 `protobuf:"bytes,1,opt,name=code_id,json=codeId,proto3" json:"code_id,omitempty"`                     // SHA256(code)[:8] hex — для поиска без раскрытия кода
+	EncMasterKey  []byte                 `protobuf:"bytes,2,opt,name=enc_master_key,json=encMasterKey,proto3" json:"enc_master_key,omitempty"` // MasterKey, зашифрованный recovery_key
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecoveryCodeEntry) Reset() {
+	*x = RecoveryCodeEntry{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoveryCodeEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoveryCodeEntry) ProtoMessage() {}
+
+func (x *RecoveryCodeEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoveryCodeEntry.ProtoReflect.Descriptor instead.
+func (*RecoveryCodeEntry) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *RecoveryCodeEntry) GetCodeId() string {
+	if x != nil {
+		return x.CodeId
+	}
+	return ""
+}
+
+func (x *RecoveryCodeEntry) GetEncMasterKey() []byte {
+	if x != nil {
+		return x.EncMasterKey
+	}
+	return nil
+}
+
+type StoreRecoveryCodesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Codes         []*RecoveryCodeEntry   `protobuf:"bytes,1,rep,name=codes,proto3" json:"codes,omitempty"` // обычно 5 записей
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StoreRecoveryCodesRequest) Reset() {
+	*x = StoreRecoveryCodesRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StoreRecoveryCodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StoreRecoveryCodesRequest) ProtoMessage() {}
+
+func (x *StoreRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StoreRecoveryCodesRequest.ProtoReflect.Descriptor instead.
+func (*StoreRecoveryCodesRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *StoreRecoveryCodesRequest) GetCodes() []*RecoveryCodeEntry {
+	if x != nil {
+		return x.Codes
+	}
+	return nil
+}
+
+type StoreRecoveryCodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StoreRecoveryCodesResponse) Reset() {
+	*x = StoreRecoveryCodesResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StoreRecoveryCodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StoreRecoveryCodesResponse) ProtoMessage() {}
+
+func (x *StoreRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StoreRecoveryCodesResponse.ProtoReflect.Descriptor instead.
+func (*StoreRecoveryCodesResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{41}
+}
+
+type GetRecoveryBlobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CodeId        string                 `protobuf:"bytes,1,opt,name=code_id,json=codeId,proto3" json:"code_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRecoveryBlobRequest) Reset() {
+	*x = GetRecoveryBlobRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRecoveryBlobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRecoveryBlobRequest) ProtoMessage() {}
+
+func (x *GetRecoveryBlobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRecoveryBlobRequest.ProtoReflect.Descriptor instead.
+func (*GetRecoveryBlobRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *GetRecoveryBlobRequest) GetCodeId() string {
+	if x != nil {
+		return x.CodeId
+	}
+	return ""
+}
+
+type GetRecoveryBlobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EncMasterKey  []byte                 `protobuf:"bytes,1,opt,name=enc_master_key,json=encMasterKey,proto3" json:"enc_master_key,omitempty"` // зашифрованный MasterKey для этого code_id
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRecoveryBlobResponse) Reset() {
+	*x = GetRecoveryBlobResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRecoveryBlobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRecoveryBlobResponse) ProtoMessage() {}
+
+func (x *GetRecoveryBlobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRecoveryBlobResponse.ProtoReflect.Descriptor instead.
+func (*GetRecoveryBlobResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *GetRecoveryBlobResponse) GetEncMasterKey() []byte {
+	if x != nil {
+		return x.EncMasterKey
+	}
+	return nil
+}
+
+type MarkRecoveryCodeUsedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CodeId        string                 `protobuf:"bytes,1,opt,name=code_id,json=codeId,proto3" json:"code_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkRecoveryCodeUsedRequest) Reset() {
+	*x = MarkRecoveryCodeUsedRequest{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkRecoveryCodeUsedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkRecoveryCodeUsedRequest) ProtoMessage() {}
+
+func (x *MarkRecoveryCodeUsedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkRecoveryCodeUsedRequest.ProtoReflect.Descriptor instead.
+func (*MarkRecoveryCodeUsedRequest) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *MarkRecoveryCodeUsedRequest) GetCodeId() string {
+	if x != nil {
+		return x.CodeId
+	}
+	return ""
+}
+
+type MarkRecoveryCodeUsedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MarkRecoveryCodeUsedResponse) Reset() {
+	*x = MarkRecoveryCodeUsedResponse{}
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkRecoveryCodeUsedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkRecoveryCodeUsedResponse) ProtoMessage() {}
+
+func (x *MarkRecoveryCodeUsedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gophkeeper_v1_gophkeeper_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MarkRecoveryCodeUsedResponse.ProtoReflect.Descriptor instead.
+func (*MarkRecoveryCodeUsedResponse) Descriptor() ([]byte, []int) {
+	return file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP(), []int{45}
 }
 
 var File_gophkeeper_v1_gophkeeper_proto protoreflect.FileDescriptor
@@ -2235,31 +2559,47 @@ const file_gophkeeper_v1_gophkeeper_proto_rawDesc = "" +
 	"\x10RegisterResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\"`\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\"\x86\x01\n" +
 	"\x16SetupEncryptionRequest\x12 \n" +
 	"\fenc_kdf_salt\x18\x01 \x01(\fR\n" +
 	"encKdfSalt\x12$\n" +
-	"\x0eenc_kdf_params\x18\x02 \x01(\fR\fencKdfParams\"\x19\n" +
+	"\x0eenc_kdf_params\x18\x02 \x01(\fR\fencKdfParams\x12$\n" +
+	"\x0eenc_master_key\x18\x03 \x01(\fR\fencMasterKey\"\x19\n" +
 	"\x17SetupEncryptionResponse\"O\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05login\x18\x01 \x01(\tR\x05login\x12)\n" +
-	"\x10login_credential\x18\x02 \x01(\fR\x0floginCredential\"\xb8\x01\n" +
+	"\x10login_credential\x18\x02 \x01(\fR\x0floginCredential\"\xde\x01\n" +
 	"\rLoginResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12 \n" +
 	"\fenc_kdf_salt\x18\x03 \x01(\fR\n" +
 	"encKdfSalt\x12$\n" +
 	"\x0eenc_kdf_params\x18\x04 \x01(\fR\fencKdfParams\x12\x17\n" +
-	"\auser_id\x18\x05 \x01(\tR\x06userId\":\n" +
+	"\auser_id\x18\x05 \x01(\tR\x06userId\x12$\n" +
+	"\x0eenc_master_key\x18\x06 \x01(\fR\fencMasterKey\":\n" +
 	"\x13RefreshTokenRequest\x12#\n" +
-	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"\xbf\x01\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"\xe5\x01\n" +
 	"\x14RefreshTokenResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x12 \n" +
 	"\fenc_kdf_salt\x18\x03 \x01(\fR\n" +
 	"encKdfSalt\x12$\n" +
 	"\x0eenc_kdf_params\x18\x04 \x01(\fR\fencKdfParams\x12\x17\n" +
-	"\auser_id\x18\x05 \x01(\tR\x06userId*\xa8\x01\n" +
+	"\auser_id\x18\x05 \x01(\tR\x06userId\x12$\n" +
+	"\x0eenc_master_key\x18\x06 \x01(\fR\fencMasterKey\"R\n" +
+	"\x11RecoveryCodeEntry\x12\x17\n" +
+	"\acode_id\x18\x01 \x01(\tR\x06codeId\x12$\n" +
+	"\x0eenc_master_key\x18\x02 \x01(\fR\fencMasterKey\"S\n" +
+	"\x19StoreRecoveryCodesRequest\x126\n" +
+	"\x05codes\x18\x01 \x03(\v2 .gophkeeper.v1.RecoveryCodeEntryR\x05codes\"\x1c\n" +
+	"\x1aStoreRecoveryCodesResponse\"1\n" +
+	"\x16GetRecoveryBlobRequest\x12\x17\n" +
+	"\acode_id\x18\x01 \x01(\tR\x06codeId\"?\n" +
+	"\x17GetRecoveryBlobResponse\x12$\n" +
+	"\x0eenc_master_key\x18\x01 \x01(\fR\fencMasterKey\"6\n" +
+	"\x1bMarkRecoveryCodeUsedRequest\x12\x17\n" +
+	"\acode_id\x18\x01 \x01(\tR\x06codeId\"\x1e\n" +
+	"\x1cMarkRecoveryCodeUsedResponse*\xa8\x01\n" +
 	"\n" +
 	"SecretType\x12\x1b\n" +
 	"\x17SECRET_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n" +
@@ -2267,13 +2607,16 @@ const file_gophkeeper_v1_gophkeeper_proto_rawDesc = "" +
 	"\x10SECRET_TYPE_TEXT\x10\x02\x12\x16\n" +
 	"\x12SECRET_TYPE_BINARY\x10\x03\x12\x19\n" +
 	"\x15SECRET_TYPE_BANK_CARD\x10\x04\x12\x14\n" +
-	"\x10SECRET_TYPE_TOTP\x10\x052\x9a\x03\n" +
+	"\x10SECRET_TYPE_TOTP\x10\x052\xd8\x05\n" +
 	"\vAuthService\x12?\n" +
 	"\x04Ping\x12\x1a.gophkeeper.v1.PingRequest\x1a\x1b.gophkeeper.v1.PingResponse\x12K\n" +
 	"\bRegister\x12\x1e.gophkeeper.v1.RegisterRequest\x1a\x1f.gophkeeper.v1.RegisterResponse\x12`\n" +
 	"\x0fSetupEncryption\x12%.gophkeeper.v1.SetupEncryptionRequest\x1a&.gophkeeper.v1.SetupEncryptionResponse\x12B\n" +
 	"\x05Login\x12\x1b.gophkeeper.v1.LoginRequest\x1a\x1c.gophkeeper.v1.LoginResponse\x12W\n" +
-	"\fRefreshToken\x12\".gophkeeper.v1.RefreshTokenRequest\x1a#.gophkeeper.v1.RefreshTokenResponse2\x96\x02\n" +
+	"\fRefreshToken\x12\".gophkeeper.v1.RefreshTokenRequest\x1a#.gophkeeper.v1.RefreshTokenResponse\x12i\n" +
+	"\x12StoreRecoveryCodes\x12(.gophkeeper.v1.StoreRecoveryCodesRequest\x1a).gophkeeper.v1.StoreRecoveryCodesResponse\x12`\n" +
+	"\x0fGetRecoveryBlob\x12%.gophkeeper.v1.GetRecoveryBlobRequest\x1a&.gophkeeper.v1.GetRecoveryBlobResponse\x12o\n" +
+	"\x14MarkRecoveryCodeUsed\x12*.gophkeeper.v1.MarkRecoveryCodeUsedRequest\x1a+.gophkeeper.v1.MarkRecoveryCodeUsedResponse2\x96\x02\n" +
 	"\fVaultService\x12T\n" +
 	"\vCreateVault\x12!.gophkeeper.v1.CreateVaultRequest\x1a\".gophkeeper.v1.CreateVaultResponse\x12Q\n" +
 	"\n" +
@@ -2307,48 +2650,55 @@ func file_gophkeeper_v1_gophkeeper_proto_rawDescGZIP() []byte {
 }
 
 var file_gophkeeper_v1_gophkeeper_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_gophkeeper_v1_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_gophkeeper_v1_gophkeeper_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_gophkeeper_v1_gophkeeper_proto_goTypes = []any{
-	(SecretType)(0),                 // 0: gophkeeper.v1.SecretType
-	(*UploadBlobChunk)(nil),         // 1: gophkeeper.v1.UploadBlobChunk
-	(*UploadBlobResult)(nil),        // 2: gophkeeper.v1.UploadBlobResult
-	(*DownloadBlobRequest)(nil),     // 3: gophkeeper.v1.DownloadBlobRequest
-	(*DownloadBlobChunk)(nil),       // 4: gophkeeper.v1.DownloadBlobChunk
-	(*AttachBlobRequest)(nil),       // 5: gophkeeper.v1.AttachBlobRequest
-	(*AttachBlobResponse)(nil),      // 6: gophkeeper.v1.AttachBlobResponse
-	(*CreateVaultRequest)(nil),      // 7: gophkeeper.v1.CreateVaultRequest
-	(*CreateVaultResponse)(nil),     // 8: gophkeeper.v1.CreateVaultResponse
-	(*ListVaultsRequest)(nil),       // 9: gophkeeper.v1.ListVaultsRequest
-	(*Vault)(nil),                   // 10: gophkeeper.v1.Vault
-	(*ListVaultsResponse)(nil),      // 11: gophkeeper.v1.ListVaultsResponse
-	(*CheckFreshnessRequest)(nil),   // 12: gophkeeper.v1.CheckFreshnessRequest
-	(*VaultVersion)(nil),            // 13: gophkeeper.v1.VaultVersion
-	(*CheckFreshnessResponse)(nil),  // 14: gophkeeper.v1.CheckFreshnessResponse
-	(*CreateSecretRequest)(nil),     // 15: gophkeeper.v1.CreateSecretRequest
-	(*CreateSecretResponse)(nil),    // 16: gophkeeper.v1.CreateSecretResponse
-	(*UpdateSecretRequest)(nil),     // 17: gophkeeper.v1.UpdateSecretRequest
-	(*UpdateSecretResponse)(nil),    // 18: gophkeeper.v1.UpdateSecretResponse
-	(*DeleteSecretRequest)(nil),     // 19: gophkeeper.v1.DeleteSecretRequest
-	(*DeleteSecretResponse)(nil),    // 20: gophkeeper.v1.DeleteSecretResponse
-	(*SecretConflict)(nil),          // 21: gophkeeper.v1.SecretConflict
-	(*ListRowRequest)(nil),          // 22: gophkeeper.v1.ListRowRequest
-	(*SecretRow)(nil),               // 23: gophkeeper.v1.SecretRow
-	(*ListRowResponse)(nil),         // 24: gophkeeper.v1.ListRowResponse
-	(*ListIndexRequest)(nil),        // 25: gophkeeper.v1.ListIndexRequest
-	(*SecretIndex)(nil),             // 26: gophkeeper.v1.SecretIndex
-	(*ListIndexResponse)(nil),       // 27: gophkeeper.v1.ListIndexResponse
-	(*GetPayloadRequest)(nil),       // 28: gophkeeper.v1.GetPayloadRequest
-	(*GetPayloadResponse)(nil),      // 29: gophkeeper.v1.GetPayloadResponse
-	(*PingRequest)(nil),             // 30: gophkeeper.v1.PingRequest
-	(*PingResponse)(nil),            // 31: gophkeeper.v1.PingResponse
-	(*RegisterRequest)(nil),         // 32: gophkeeper.v1.RegisterRequest
-	(*RegisterResponse)(nil),        // 33: gophkeeper.v1.RegisterResponse
-	(*SetupEncryptionRequest)(nil),  // 34: gophkeeper.v1.SetupEncryptionRequest
-	(*SetupEncryptionResponse)(nil), // 35: gophkeeper.v1.SetupEncryptionResponse
-	(*LoginRequest)(nil),            // 36: gophkeeper.v1.LoginRequest
-	(*LoginResponse)(nil),           // 37: gophkeeper.v1.LoginResponse
-	(*RefreshTokenRequest)(nil),     // 38: gophkeeper.v1.RefreshTokenRequest
-	(*RefreshTokenResponse)(nil),    // 39: gophkeeper.v1.RefreshTokenResponse
+	(SecretType)(0),                      // 0: gophkeeper.v1.SecretType
+	(*UploadBlobChunk)(nil),              // 1: gophkeeper.v1.UploadBlobChunk
+	(*UploadBlobResult)(nil),             // 2: gophkeeper.v1.UploadBlobResult
+	(*DownloadBlobRequest)(nil),          // 3: gophkeeper.v1.DownloadBlobRequest
+	(*DownloadBlobChunk)(nil),            // 4: gophkeeper.v1.DownloadBlobChunk
+	(*AttachBlobRequest)(nil),            // 5: gophkeeper.v1.AttachBlobRequest
+	(*AttachBlobResponse)(nil),           // 6: gophkeeper.v1.AttachBlobResponse
+	(*CreateVaultRequest)(nil),           // 7: gophkeeper.v1.CreateVaultRequest
+	(*CreateVaultResponse)(nil),          // 8: gophkeeper.v1.CreateVaultResponse
+	(*ListVaultsRequest)(nil),            // 9: gophkeeper.v1.ListVaultsRequest
+	(*Vault)(nil),                        // 10: gophkeeper.v1.Vault
+	(*ListVaultsResponse)(nil),           // 11: gophkeeper.v1.ListVaultsResponse
+	(*CheckFreshnessRequest)(nil),        // 12: gophkeeper.v1.CheckFreshnessRequest
+	(*VaultVersion)(nil),                 // 13: gophkeeper.v1.VaultVersion
+	(*CheckFreshnessResponse)(nil),       // 14: gophkeeper.v1.CheckFreshnessResponse
+	(*CreateSecretRequest)(nil),          // 15: gophkeeper.v1.CreateSecretRequest
+	(*CreateSecretResponse)(nil),         // 16: gophkeeper.v1.CreateSecretResponse
+	(*UpdateSecretRequest)(nil),          // 17: gophkeeper.v1.UpdateSecretRequest
+	(*UpdateSecretResponse)(nil),         // 18: gophkeeper.v1.UpdateSecretResponse
+	(*DeleteSecretRequest)(nil),          // 19: gophkeeper.v1.DeleteSecretRequest
+	(*DeleteSecretResponse)(nil),         // 20: gophkeeper.v1.DeleteSecretResponse
+	(*SecretConflict)(nil),               // 21: gophkeeper.v1.SecretConflict
+	(*ListRowRequest)(nil),               // 22: gophkeeper.v1.ListRowRequest
+	(*SecretRow)(nil),                    // 23: gophkeeper.v1.SecretRow
+	(*ListRowResponse)(nil),              // 24: gophkeeper.v1.ListRowResponse
+	(*ListIndexRequest)(nil),             // 25: gophkeeper.v1.ListIndexRequest
+	(*SecretIndex)(nil),                  // 26: gophkeeper.v1.SecretIndex
+	(*ListIndexResponse)(nil),            // 27: gophkeeper.v1.ListIndexResponse
+	(*GetPayloadRequest)(nil),            // 28: gophkeeper.v1.GetPayloadRequest
+	(*GetPayloadResponse)(nil),           // 29: gophkeeper.v1.GetPayloadResponse
+	(*PingRequest)(nil),                  // 30: gophkeeper.v1.PingRequest
+	(*PingResponse)(nil),                 // 31: gophkeeper.v1.PingResponse
+	(*RegisterRequest)(nil),              // 32: gophkeeper.v1.RegisterRequest
+	(*RegisterResponse)(nil),             // 33: gophkeeper.v1.RegisterResponse
+	(*SetupEncryptionRequest)(nil),       // 34: gophkeeper.v1.SetupEncryptionRequest
+	(*SetupEncryptionResponse)(nil),      // 35: gophkeeper.v1.SetupEncryptionResponse
+	(*LoginRequest)(nil),                 // 36: gophkeeper.v1.LoginRequest
+	(*LoginResponse)(nil),                // 37: gophkeeper.v1.LoginResponse
+	(*RefreshTokenRequest)(nil),          // 38: gophkeeper.v1.RefreshTokenRequest
+	(*RefreshTokenResponse)(nil),         // 39: gophkeeper.v1.RefreshTokenResponse
+	(*RecoveryCodeEntry)(nil),            // 40: gophkeeper.v1.RecoveryCodeEntry
+	(*StoreRecoveryCodesRequest)(nil),    // 41: gophkeeper.v1.StoreRecoveryCodesRequest
+	(*StoreRecoveryCodesResponse)(nil),   // 42: gophkeeper.v1.StoreRecoveryCodesResponse
+	(*GetRecoveryBlobRequest)(nil),       // 43: gophkeeper.v1.GetRecoveryBlobRequest
+	(*GetRecoveryBlobResponse)(nil),      // 44: gophkeeper.v1.GetRecoveryBlobResponse
+	(*MarkRecoveryCodeUsedRequest)(nil),  // 45: gophkeeper.v1.MarkRecoveryCodeUsedRequest
+	(*MarkRecoveryCodeUsedResponse)(nil), // 46: gophkeeper.v1.MarkRecoveryCodeUsedResponse
 }
 var file_gophkeeper_v1_gophkeeper_proto_depIdxs = []int32{
 	10, // 0: gophkeeper.v1.ListVaultsResponse.vaults:type_name -> gophkeeper.v1.Vault
@@ -2359,45 +2709,52 @@ var file_gophkeeper_v1_gophkeeper_proto_depIdxs = []int32{
 	23, // 5: gophkeeper.v1.ListRowResponse.secrets:type_name -> gophkeeper.v1.SecretRow
 	26, // 6: gophkeeper.v1.ListIndexResponse.secrets:type_name -> gophkeeper.v1.SecretIndex
 	0,  // 7: gophkeeper.v1.GetPayloadResponse.type:type_name -> gophkeeper.v1.SecretType
-	30, // 8: gophkeeper.v1.AuthService.Ping:input_type -> gophkeeper.v1.PingRequest
-	32, // 9: gophkeeper.v1.AuthService.Register:input_type -> gophkeeper.v1.RegisterRequest
-	34, // 10: gophkeeper.v1.AuthService.SetupEncryption:input_type -> gophkeeper.v1.SetupEncryptionRequest
-	36, // 11: gophkeeper.v1.AuthService.Login:input_type -> gophkeeper.v1.LoginRequest
-	38, // 12: gophkeeper.v1.AuthService.RefreshToken:input_type -> gophkeeper.v1.RefreshTokenRequest
-	7,  // 13: gophkeeper.v1.VaultService.CreateVault:input_type -> gophkeeper.v1.CreateVaultRequest
-	9,  // 14: gophkeeper.v1.VaultService.ListVaults:input_type -> gophkeeper.v1.ListVaultsRequest
-	12, // 15: gophkeeper.v1.VaultService.CheckFreshness:input_type -> gophkeeper.v1.CheckFreshnessRequest
-	15, // 16: gophkeeper.v1.SecretService.CreateSecret:input_type -> gophkeeper.v1.CreateSecretRequest
-	17, // 17: gophkeeper.v1.SecretService.UpdateSecret:input_type -> gophkeeper.v1.UpdateSecretRequest
-	19, // 18: gophkeeper.v1.SecretService.DeleteSecret:input_type -> gophkeeper.v1.DeleteSecretRequest
-	22, // 19: gophkeeper.v1.SecretService.ListRow:input_type -> gophkeeper.v1.ListRowRequest
-	25, // 20: gophkeeper.v1.SecretService.ListIndex:input_type -> gophkeeper.v1.ListIndexRequest
-	28, // 21: gophkeeper.v1.SecretService.GetPayload:input_type -> gophkeeper.v1.GetPayloadRequest
-	1,  // 22: gophkeeper.v1.BlobService.UploadBlob:input_type -> gophkeeper.v1.UploadBlobChunk
-	3,  // 23: gophkeeper.v1.BlobService.DownloadBlob:input_type -> gophkeeper.v1.DownloadBlobRequest
-	5,  // 24: gophkeeper.v1.BlobService.AttachBlob:input_type -> gophkeeper.v1.AttachBlobRequest
-	31, // 25: gophkeeper.v1.AuthService.Ping:output_type -> gophkeeper.v1.PingResponse
-	33, // 26: gophkeeper.v1.AuthService.Register:output_type -> gophkeeper.v1.RegisterResponse
-	35, // 27: gophkeeper.v1.AuthService.SetupEncryption:output_type -> gophkeeper.v1.SetupEncryptionResponse
-	37, // 28: gophkeeper.v1.AuthService.Login:output_type -> gophkeeper.v1.LoginResponse
-	39, // 29: gophkeeper.v1.AuthService.RefreshToken:output_type -> gophkeeper.v1.RefreshTokenResponse
-	8,  // 30: gophkeeper.v1.VaultService.CreateVault:output_type -> gophkeeper.v1.CreateVaultResponse
-	11, // 31: gophkeeper.v1.VaultService.ListVaults:output_type -> gophkeeper.v1.ListVaultsResponse
-	14, // 32: gophkeeper.v1.VaultService.CheckFreshness:output_type -> gophkeeper.v1.CheckFreshnessResponse
-	16, // 33: gophkeeper.v1.SecretService.CreateSecret:output_type -> gophkeeper.v1.CreateSecretResponse
-	18, // 34: gophkeeper.v1.SecretService.UpdateSecret:output_type -> gophkeeper.v1.UpdateSecretResponse
-	20, // 35: gophkeeper.v1.SecretService.DeleteSecret:output_type -> gophkeeper.v1.DeleteSecretResponse
-	24, // 36: gophkeeper.v1.SecretService.ListRow:output_type -> gophkeeper.v1.ListRowResponse
-	27, // 37: gophkeeper.v1.SecretService.ListIndex:output_type -> gophkeeper.v1.ListIndexResponse
-	29, // 38: gophkeeper.v1.SecretService.GetPayload:output_type -> gophkeeper.v1.GetPayloadResponse
-	2,  // 39: gophkeeper.v1.BlobService.UploadBlob:output_type -> gophkeeper.v1.UploadBlobResult
-	4,  // 40: gophkeeper.v1.BlobService.DownloadBlob:output_type -> gophkeeper.v1.DownloadBlobChunk
-	6,  // 41: gophkeeper.v1.BlobService.AttachBlob:output_type -> gophkeeper.v1.AttachBlobResponse
-	25, // [25:42] is the sub-list for method output_type
-	8,  // [8:25] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	40, // 8: gophkeeper.v1.StoreRecoveryCodesRequest.codes:type_name -> gophkeeper.v1.RecoveryCodeEntry
+	30, // 9: gophkeeper.v1.AuthService.Ping:input_type -> gophkeeper.v1.PingRequest
+	32, // 10: gophkeeper.v1.AuthService.Register:input_type -> gophkeeper.v1.RegisterRequest
+	34, // 11: gophkeeper.v1.AuthService.SetupEncryption:input_type -> gophkeeper.v1.SetupEncryptionRequest
+	36, // 12: gophkeeper.v1.AuthService.Login:input_type -> gophkeeper.v1.LoginRequest
+	38, // 13: gophkeeper.v1.AuthService.RefreshToken:input_type -> gophkeeper.v1.RefreshTokenRequest
+	41, // 14: gophkeeper.v1.AuthService.StoreRecoveryCodes:input_type -> gophkeeper.v1.StoreRecoveryCodesRequest
+	43, // 15: gophkeeper.v1.AuthService.GetRecoveryBlob:input_type -> gophkeeper.v1.GetRecoveryBlobRequest
+	45, // 16: gophkeeper.v1.AuthService.MarkRecoveryCodeUsed:input_type -> gophkeeper.v1.MarkRecoveryCodeUsedRequest
+	7,  // 17: gophkeeper.v1.VaultService.CreateVault:input_type -> gophkeeper.v1.CreateVaultRequest
+	9,  // 18: gophkeeper.v1.VaultService.ListVaults:input_type -> gophkeeper.v1.ListVaultsRequest
+	12, // 19: gophkeeper.v1.VaultService.CheckFreshness:input_type -> gophkeeper.v1.CheckFreshnessRequest
+	15, // 20: gophkeeper.v1.SecretService.CreateSecret:input_type -> gophkeeper.v1.CreateSecretRequest
+	17, // 21: gophkeeper.v1.SecretService.UpdateSecret:input_type -> gophkeeper.v1.UpdateSecretRequest
+	19, // 22: gophkeeper.v1.SecretService.DeleteSecret:input_type -> gophkeeper.v1.DeleteSecretRequest
+	22, // 23: gophkeeper.v1.SecretService.ListRow:input_type -> gophkeeper.v1.ListRowRequest
+	25, // 24: gophkeeper.v1.SecretService.ListIndex:input_type -> gophkeeper.v1.ListIndexRequest
+	28, // 25: gophkeeper.v1.SecretService.GetPayload:input_type -> gophkeeper.v1.GetPayloadRequest
+	1,  // 26: gophkeeper.v1.BlobService.UploadBlob:input_type -> gophkeeper.v1.UploadBlobChunk
+	3,  // 27: gophkeeper.v1.BlobService.DownloadBlob:input_type -> gophkeeper.v1.DownloadBlobRequest
+	5,  // 28: gophkeeper.v1.BlobService.AttachBlob:input_type -> gophkeeper.v1.AttachBlobRequest
+	31, // 29: gophkeeper.v1.AuthService.Ping:output_type -> gophkeeper.v1.PingResponse
+	33, // 30: gophkeeper.v1.AuthService.Register:output_type -> gophkeeper.v1.RegisterResponse
+	35, // 31: gophkeeper.v1.AuthService.SetupEncryption:output_type -> gophkeeper.v1.SetupEncryptionResponse
+	37, // 32: gophkeeper.v1.AuthService.Login:output_type -> gophkeeper.v1.LoginResponse
+	39, // 33: gophkeeper.v1.AuthService.RefreshToken:output_type -> gophkeeper.v1.RefreshTokenResponse
+	42, // 34: gophkeeper.v1.AuthService.StoreRecoveryCodes:output_type -> gophkeeper.v1.StoreRecoveryCodesResponse
+	44, // 35: gophkeeper.v1.AuthService.GetRecoveryBlob:output_type -> gophkeeper.v1.GetRecoveryBlobResponse
+	46, // 36: gophkeeper.v1.AuthService.MarkRecoveryCodeUsed:output_type -> gophkeeper.v1.MarkRecoveryCodeUsedResponse
+	8,  // 37: gophkeeper.v1.VaultService.CreateVault:output_type -> gophkeeper.v1.CreateVaultResponse
+	11, // 38: gophkeeper.v1.VaultService.ListVaults:output_type -> gophkeeper.v1.ListVaultsResponse
+	14, // 39: gophkeeper.v1.VaultService.CheckFreshness:output_type -> gophkeeper.v1.CheckFreshnessResponse
+	16, // 40: gophkeeper.v1.SecretService.CreateSecret:output_type -> gophkeeper.v1.CreateSecretResponse
+	18, // 41: gophkeeper.v1.SecretService.UpdateSecret:output_type -> gophkeeper.v1.UpdateSecretResponse
+	20, // 42: gophkeeper.v1.SecretService.DeleteSecret:output_type -> gophkeeper.v1.DeleteSecretResponse
+	24, // 43: gophkeeper.v1.SecretService.ListRow:output_type -> gophkeeper.v1.ListRowResponse
+	27, // 44: gophkeeper.v1.SecretService.ListIndex:output_type -> gophkeeper.v1.ListIndexResponse
+	29, // 45: gophkeeper.v1.SecretService.GetPayload:output_type -> gophkeeper.v1.GetPayloadResponse
+	2,  // 46: gophkeeper.v1.BlobService.UploadBlob:output_type -> gophkeeper.v1.UploadBlobResult
+	4,  // 47: gophkeeper.v1.BlobService.DownloadBlob:output_type -> gophkeeper.v1.DownloadBlobChunk
+	6,  // 48: gophkeeper.v1.BlobService.AttachBlob:output_type -> gophkeeper.v1.AttachBlobResponse
+	29, // [29:49] is the sub-list for method output_type
+	9,  // [9:29] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_gophkeeper_v1_gophkeeper_proto_init() }
@@ -2411,7 +2768,7 @@ func file_gophkeeper_v1_gophkeeper_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gophkeeper_v1_gophkeeper_proto_rawDesc), len(file_gophkeeper_v1_gophkeeper_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   4,
 		},

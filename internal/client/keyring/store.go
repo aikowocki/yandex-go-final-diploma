@@ -1,7 +1,7 @@
 // Package keyring реализует contracts.TokenStore: хранение JWT на стороне клиента.
-// Основной путь — OS keyring (zalando/go-keyring). Если он недоступен (нет keychain,
-// headless-окружение и т.п.) и разрешён fallback — токены пишутся в файл с правами 0600
-// в DATA_DIR.
+// Основной путь — OS keyring (zalando/go-keyring), с fallback в файл (0600, DATA_DIR), если
+// keyring недоступен. Режим persist=false (--no-persist/NoPersist) отключает ОБА эти пути и
+// держит токены только в памяти процесса.
 package keyring
 
 import (
@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/zalando/go-keyring"
@@ -25,25 +26,36 @@ const (
 	tokenFileMode = 0o600
 )
 
-// ErrNoToken — токены не сохранены (ни в keyring, ни в файле).
+// ErrNoToken — токены не сохранены (ни в keyring, ни в файле, ни в памяти).
 var ErrNoToken = errors.New("keyring: no token stored")
 
 // Store — реализация contracts.TokenStore.
 type Store struct {
-	dataDir   string
-	allowFile bool
+	dataDir string
+	persist bool
+
+	mu  sync.RWMutex
+	mem *contracts.Tokens // используется только когда persist=false
 }
 
 var _ contracts.TokenStore = (*Store)(nil)
 
 // New создаёт хранилище токенов. allowFile разрешает fallback в файл, когда OS keyring
 // недоступен (передаётся из конфига: !NoPersist).
-func New(dataDir string, allowFile bool) *Store {
-	return &Store{dataDir: dataDir, allowFile: allowFile}
+func New(dataDir string, persist bool) *Store {
+	return &Store{dataDir: dataDir, persist: persist}
 }
 
-// Save сохраняет токены: сначала в OS keyring, при ошибке — в файл (если разрешено).
+// Save сохраняет токены. Если persist=false — только в памяти процесса. Иначе — в OS keyring,
+// при ошибке — в файл.
 func (s *Store) Save(t contracts.Tokens) error {
+	if !s.persist {
+		s.mu.Lock()
+		s.mem = &t
+		s.mu.Unlock()
+		return nil
+	}
+
 	data, err := json.Marshal(t)
 	if err != nil {
 		return fmt.Errorf("keyring: marshal tokens: %w", err)
@@ -51,8 +63,6 @@ func (s *Store) Save(t contracts.Tokens) error {
 
 	if keyErr := keyring.Set(service, account, string(data)); keyErr == nil {
 		return nil
-	} else if !s.allowFile {
-		return fmt.Errorf("keyring: set: %w", keyErr)
 	}
 
 	return s.saveFile(data)
@@ -60,33 +70,41 @@ func (s *Store) Save(t contracts.Tokens) error {
 
 // Load читает токены из OS keyring, при отсутствии/ошибке — из файла (если разрешено).
 func (s *Store) Load() (contracts.Tokens, error) {
+	if !s.persist {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+		if s.mem == nil {
+			return contracts.Tokens{}, ErrNoToken
+		}
+		return *s.mem, nil
+	}
+
 	raw, keyErr := keyring.Get(service, account)
 	if keyErr == nil {
 		return unmarshalTokens([]byte(raw))
 	}
 
-	if !s.allowFile {
-		if errors.Is(keyErr, keyring.ErrNotFound) {
-			return contracts.Tokens{}, ErrNoToken
-		}
-		return contracts.Tokens{}, fmt.Errorf("keyring: get: %w", keyErr)
-	}
-
 	return s.loadFile()
 }
 
-// Clear удаляет токены из обоих хранилищ.
+// Clear удаляет сохранённые токены (из памяти, либо из OS keyring и файла — в зависимости
+// от режима persist).
 func (s *Store) Clear() error {
+	if !s.persist {
+		s.mu.Lock()
+		s.mem = nil
+		s.mu.Unlock()
+		return nil
+	}
+
 	var errs []error
 
 	if err := keyring.Delete(service, account); err != nil && !errors.Is(err, keyring.ErrNotFound) {
 		errs = append(errs, fmt.Errorf("keyring: delete: %w", err))
 	}
 
-	if s.allowFile {
-		if err := os.Remove(s.tokenPath()); err != nil && !errors.Is(err, os.ErrNotExist) {
-			errs = append(errs, fmt.Errorf("keyring: remove file: %w", err))
-		}
+	if err := os.Remove(s.tokenPath()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		errs = append(errs, fmt.Errorf("keyring: remove file: %w", err))
 	}
 
 	return errors.Join(errs...)

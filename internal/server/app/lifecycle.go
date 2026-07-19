@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"net/http"
+	"net/http/pprof"
 	"os/signal"
 	"syscall"
 	"time"
@@ -11,8 +14,9 @@ import (
 const shutdownTimeout = 10 * time.Second
 
 // Run запускает приложение и ждёт сигнала остановки.
+// SIGINT/SIGTERM/SIGQUIT запускают graceful shutdown.
 func (c *Container) Run() error {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
 	// Запускаем gRPC в отдельной горутине
@@ -21,6 +25,17 @@ func (c *Container) Run() error {
 		slog.Info("starting gRPC server", "addr", c.Config.GRPCAddr)
 		errCh <- c.GRPC.Run(c.Config.GRPCAddr)
 	}()
+
+	// pprof — отдельный HTTP-listener, поднимается только если явно задан адрес в конфиге.
+	pprofSrv := newPprofServer(c.Config.PprofAddress)
+	if pprofSrv != nil {
+		go func() {
+			slog.Info("starting pprof server", "addr", c.Config.PprofAddress)
+			if err := pprofSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Warn("pprof server stopped", "err", err)
+			}
+		}()
+	}
 
 	// Ждём либо ошибки запуска, либо сигнала
 	select {
@@ -34,12 +49,33 @@ func (c *Container) Run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	c.shutdown(shutdownCtx)
+	c.shutdown(shutdownCtx, pprofSrv)
 	return nil
 }
 
-func (c *Container) shutdown(ctx context.Context) {
+func (c *Container) shutdown(ctx context.Context, pprofSrv *http.Server) {
 	c.GRPC.Stop()
+	if pprofSrv != nil {
+		_ = pprofSrv.Shutdown(ctx)
+	}
 	c.DB.Close()
 	slog.Info("shutdown complete")
+}
+
+// newPprofServer собирает *http.Server с эндпоинтами net/http/pprof на отдельном ServeMux
+func newPprofServer(addr string) *http.Server {
+	if addr == "" {
+		return nil
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	return &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 }

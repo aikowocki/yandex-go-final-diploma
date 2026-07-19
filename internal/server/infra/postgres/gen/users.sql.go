@@ -14,7 +14,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (login, auth_hash)
 VALUES ($1, $2)
-RETURNING id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at
+RETURNING id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at, enc_master_key
 `
 
 type CreateUserParams struct {
@@ -35,12 +35,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.TotpEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EncMasterKey,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at FROM users
+SELECT id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at, enc_master_key FROM users
 WHERE id = $1
 `
 
@@ -57,12 +58,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.TotpEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EncMasterKey,
 	)
 	return i, err
 }
 
 const getUserByLogin = `-- name: GetUserByLogin :one
-SELECT id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at FROM users
+SELECT id, login, auth_hash, enc_kdf_salt, enc_kdf_params, totp_secret, totp_enabled, created_at, updated_at, enc_master_key FROM users
 WHERE login = $1
 `
 
@@ -79,6 +81,7 @@ func (q *Queries) GetUserByLogin(ctx context.Context, login string) (User, error
 		&i.TotpEnabled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EncMasterKey,
 	)
 	return i, err
 }
@@ -87,6 +90,7 @@ const updateUserEncKDF = `-- name: UpdateUserEncKDF :exec
 UPDATE users
 SET enc_kdf_salt = $2,
     enc_kdf_params = $3,
+    enc_master_key = $4,
     updated_at = now()
 WHERE id = $1
 `
@@ -95,9 +99,15 @@ type UpdateUserEncKDFParams struct {
 	ID           pgtype.UUID
 	EncKdfSalt   []byte
 	EncKdfParams []byte
+	EncMasterKey []byte
 }
 
 func (q *Queries) UpdateUserEncKDF(ctx context.Context, arg UpdateUserEncKDFParams) error {
-	_, err := q.db.Exec(ctx, updateUserEncKDF, arg.ID, arg.EncKdfSalt, arg.EncKdfParams)
+	_, err := q.db.Exec(ctx, updateUserEncKDF,
+		arg.ID,
+		arg.EncKdfSalt,
+		arg.EncKdfParams,
+		arg.EncMasterKey,
+	)
 	return err
 }

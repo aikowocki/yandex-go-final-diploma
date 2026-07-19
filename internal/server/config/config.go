@@ -6,6 +6,7 @@ import (
 	"github.com/alecthomas/kong"
 )
 
+// ServerConfig holds server configuration loaded from CLI flags/env/config file.
 type ServerConfig struct {
 	GRPCAddr      string          `help:"gRPC listen address" short:"a" default:":9090" env:"GRPC_ADDR"`
 	DatabaseDSN   string          `help:"PostgreSQL DSN" short:"d" env:"DATABASE_DSN"`
@@ -17,6 +18,11 @@ type ServerConfig struct {
 	MinioBucket   string          `help:"MinIO bucket for binary secret blobs" default:"gophkeeper-blobs" env:"MINIO_BUCKET"`
 	MinioUseSSL   bool            `help:"Use TLS when connecting to MinIO" env:"MINIO_USE_SSL"`
 	ConfigFile    kong.ConfigFlag `help:"path to JSON config file" short:"c" env:"CONFIG" placeholder:"PATH"`
+	// PprofAddress — адрес отдельного HTTP-listener'а с net/http/pprof (например
+	// "0.0.0.0:6061"). Пустая строка (по умолчанию) отключает pprof полностью — сервер не
+	// поднимает никакой дополнительный listener. Не используйте 0.0.0.0 в реальном проде без
+	// сетевой изоляции: pprof-эндпоинты отдают стек-трейсы и содержимое кучи процесса.
+	PprofAddress string `help:"pprof HTTP listen address (empty = disabled)" env:"PPROF_ADDRESS"`
 }
 
 // LoadServerConfig загружает конфиг из os.Args.

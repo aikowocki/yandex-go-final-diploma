@@ -6,7 +6,25 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -15,9 +33,18 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: Build
         run: go build ./...
 
       - name: Vet
         run: go vet ./...
+
+      - name: Generate test coverage
+        run: go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+
+      - name: Check test coverage
+        uses: vladopajic/go-test-coverage@v2
+        with:
+          config: ./.testcoverage.yml

@@ -3,71 +3,21 @@ package secret
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-
-	"github.com/google/uuid"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain"
-	"github.com/aikowocki/yandex-go-final-diploma/internal/client/grpcclient"
 )
 
 // createVersion — версия только что созданного секрета (для AAD и локального кеша).
 const createVersion int64 = 1
 
-// CreateLoginPassword шифрует поля VaultKey'ом открытой папки и создаёт секрет. id секрета
-// генерируется клиентом (нужен для AAD-привязки шифротекста). Если сервер недоступен (оффлайн),
-// операция кладётся в outbox, секрет сохраняется в кеше с флагом dirty; пользователю возвращается
-// успех (оптимистично).
+// CreateLoginPassword создаёт секрет типа login/password.
 func (u *UseCase) CreateLoginPassword(ctx context.Context, vaultID string, input CreateLoginPasswordInput) (string, error) {
 	if input.Title == "" {
 		return "", ErrEmptyTitle
 	}
-
-	vaultKey, token, err := u.vaultContext(vaultID)
-	if err != nil {
-		return "", err
-	}
-
-	secretID := uuid.NewString()
-	secretType := int32(domain.SecretTypeLoginPassword)
-
-	encRow, encIndex, encPayload, err := u.encryptLoginPassword(vaultKey, vaultID, secretID, createVersion, input)
-	if err != nil {
-		return "", err
-	}
-
-	if err := u.server.CreateSecret(ctx, token, secretID, vaultID, secretType, encRow, encIndex, encPayload); err != nil {
-		if errors.Is(err, grpcclient.ErrUnavailable) {
-			return u.createOffline(ctx, secretID, vaultID, secretType, encRow, encIndex, encPayload)
-		}
-		return "", err
-	}
-
-	// Онлайн-успех: кладём секрет в локальный кеш (payload уже известен → payload_loaded=1).
-	if err := u.cacheCreated(ctx, secretID, vaultID, secretType, encRow, encIndex, encPayload, false); err != nil {
-		return "", err
-	}
-	return secretID, nil
-}
-
-// encryptLoginPassword шифрует три тира секрета типа login/password с AAD-контекстом
-// (vault_id|secret_id|version|tier). version — та версия, которую строка получит на сервере.
-func (u *UseCase) encryptLoginPassword(vaultKey []byte, vaultID, secretID string, version int64, input CreateLoginPasswordInput) (encRow, encIndex, encPayload []byte, err error) {
-	encRow, err = u.cipher.EncryptStruct(vaultKey, secretAAD(vaultID, secretID, version, tierRow), input.toRow())
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encrypt row: %w", err)
-	}
-	encIndex, err = u.cipher.EncryptStruct(vaultKey, secretAAD(vaultID, secretID, version, tierIndex), input.toIndex())
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encrypt index: %w", err)
-	}
-	encPayload, err = u.cipher.EncryptStruct(vaultKey, secretAAD(vaultID, secretID, version, tierPayload), input.toPayload())
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encrypt payload: %w", err)
-	}
-	return encRow, encIndex, encPayload, nil
+	return createTyped(ctx, u, vaultID, int32(domain.SecretTypeLoginPassword), input.toRow(), input.toIndex(), input.toPayload())
 }
 
 // createOffline сохраняет секрет локально (dirty) и ставит операцию create в outbox.

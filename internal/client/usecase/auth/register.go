@@ -23,6 +23,9 @@ func (u *UseCase) Register(ctx context.Context, login string, loginCredential []
 		return err
 	}
 
+	// Кешируем login для отображения в UI (Lock-экран, User-меню), как в Login.
+	_ = u.local.KVSet(ctx, kvAccountLogin, []byte(login))
+
 	if err := u.tokens.Save(tokens); err != nil {
 		return fmt.Errorf("save tokens: %w", err)
 	}

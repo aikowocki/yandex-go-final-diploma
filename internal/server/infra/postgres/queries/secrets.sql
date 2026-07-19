@@ -62,7 +62,8 @@ WHERE id = $1;
 
 -- AttachBlob — прописывает blob_ref/blob_size секрету type=binary ПОСЛЕ того как клиент успешно
 -- залил зашифрованный блоб в MinIO.
+-- name: AttachBlob :one
 UPDATE secrets
-SET blob_ref = $2, blob_size = $3, version = version + 1, updated_at = now()
+SET blob_ref = $2, blob_size = $3, updated_at = now()
 WHERE id = $1
 RETURNING version;

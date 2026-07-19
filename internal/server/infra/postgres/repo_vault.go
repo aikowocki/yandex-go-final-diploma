@@ -20,6 +20,7 @@ var (
 	_ secret.VaultOwnership = (*VaultRepo)(nil)
 )
 
+// NewVaultRepo создаёт VaultRepo поверх переданного пула соединений.
 func NewVaultRepo(db *DB) *VaultRepo {
 	return &VaultRepo{db: db}
 }
@@ -28,6 +29,7 @@ func (r *VaultRepo) q(ctx context.Context) *gen.Queries {
 	return gen.New(r.db.querier(ctx))
 }
 
+// Create создаёт новую папку (vault) для пользователя.
 func (r *VaultRepo) Create(ctx context.Context, v domain.Vault) (domain.Vault, error) {
 	userID, err := parseUUID(v.UserID)
 	if err != nil {
@@ -68,6 +70,7 @@ func (r *VaultRepo) IsOwner(ctx context.Context, vaultID, userID string) (bool, 
 	return owns, nil
 }
 
+// CheckFreshness возвращает текущие версии всех папок пользователя для сверки со клиентом.
 func (r *VaultRepo) CheckFreshness(ctx context.Context, userID string) ([]vault.Version, error) {
 	uid, err := parseUUID(userID)
 	if err != nil {
@@ -89,6 +92,7 @@ func (r *VaultRepo) CheckFreshness(ctx context.Context, userID string) ([]vault.
 	return versions, nil
 }
 
+// ListByUser возвращает все папки, принадлежащие пользователю.
 func (r *VaultRepo) ListByUser(ctx context.Context, userID string) ([]domain.Vault, error) {
 	uid, err := parseUUID(userID)
 	if err != nil {

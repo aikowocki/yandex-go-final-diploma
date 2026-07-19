@@ -11,6 +11,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
 
+// Sentinel-ошибки, в которые mapErr конвертирует gRPC-статусы сервера.
 var (
 	ErrInvalidCredentials = errors.New("invalid login or credential")
 	ErrLoginTaken         = errors.New("login already taken")

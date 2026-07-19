@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
@@ -58,12 +59,19 @@ func (u *UseCase) List(ctx context.Context) ([]DecryptedVault, error) {
 			return nil, fmt.Errorf("cache vault: %w", err)
 		}
 
-		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version})
+		// Сохранённый флаг sync_enabled читаем из локального кеша (UpsertVault выше его не
+		// перетирает при ON CONFLICT) — иначе после ре-логина выбор пользователя потерялся бы.
+		syncEnabled := true
+		if lv, ok, gerr := u.local.GetVault(ctx, it.ID); gerr == nil && ok {
+			syncEnabled = lv.SyncEnabled
+		}
+		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version, SyncEnabled: syncEnabled})
 	}
 
 	if err := u.pruneStaleVaults(ctx, seen); err != nil {
 		return nil, err
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result, nil
 }
 
@@ -115,7 +123,8 @@ func (u *UseCase) ListLocal(ctx context.Context) ([]DecryptedVault, error) {
 		}
 
 		u.sess.OpenVault(it.ID, vaultKey)
-		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version})
+		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version, SyncEnabled: it.SyncEnabled})
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return result, nil
 }

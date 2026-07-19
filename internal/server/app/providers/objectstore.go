@@ -7,6 +7,8 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/infra/objectstore"
 )
 
+// NewObjectStore создаёт объектное хранилище MinIO.
+// Если MinIO не настроен, возвращает nil без ошибки.
 func NewObjectStore(ctx context.Context, cfg *config.ServerConfig) (*objectstore.Store, error) {
 	if cfg.MinioEndpoint == "" {
 		return nil, nil

@@ -193,17 +193,17 @@ func (_c *MockRepository_GetByLogin_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// UpdateEncKDF provides a mock function with given fields: ctx, userID, salt, params
-func (_m *MockRepository) UpdateEncKDF(ctx context.Context, userID string, salt []byte, params []byte) error {
-	ret := _m.Called(ctx, userID, salt, params)
+// UpdateEncKDF provides a mock function with given fields: ctx, userID, salt, params, encMasterKey
+func (_m *MockRepository) UpdateEncKDF(ctx context.Context, userID string, salt []byte, params []byte, encMasterKey []byte) error {
+	ret := _m.Called(ctx, userID, salt, params, encMasterKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateEncKDF")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte) error); ok {
-		r0 = rf(ctx, userID, salt, params)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte, []byte) error); ok {
+		r0 = rf(ctx, userID, salt, params, encMasterKey)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -221,13 +221,14 @@ type MockRepository_UpdateEncKDF_Call struct {
 //   - userID string
 //   - salt []byte
 //   - params []byte
-func (_e *MockRepository_Expecter) UpdateEncKDF(ctx interface{}, userID interface{}, salt interface{}, params interface{}) *MockRepository_UpdateEncKDF_Call {
-	return &MockRepository_UpdateEncKDF_Call{Call: _e.mock.On("UpdateEncKDF", ctx, userID, salt, params)}
+//   - encMasterKey []byte
+func (_e *MockRepository_Expecter) UpdateEncKDF(ctx interface{}, userID interface{}, salt interface{}, params interface{}, encMasterKey interface{}) *MockRepository_UpdateEncKDF_Call {
+	return &MockRepository_UpdateEncKDF_Call{Call: _e.mock.On("UpdateEncKDF", ctx, userID, salt, params, encMasterKey)}
 }
 
-func (_c *MockRepository_UpdateEncKDF_Call) Run(run func(ctx context.Context, userID string, salt []byte, params []byte)) *MockRepository_UpdateEncKDF_Call {
+func (_c *MockRepository_UpdateEncKDF_Call) Run(run func(ctx context.Context, userID string, salt []byte, params []byte, encMasterKey []byte)) *MockRepository_UpdateEncKDF_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte), args[4].([]byte))
 	})
 	return _c
 }
@@ -237,7 +238,7 @@ func (_c *MockRepository_UpdateEncKDF_Call) Return(_a0 error) *MockRepository_Up
 	return _c
 }
 
-func (_c *MockRepository_UpdateEncKDF_Call) RunAndReturn(run func(context.Context, string, []byte, []byte) error) *MockRepository_UpdateEncKDF_Call {
+func (_c *MockRepository_UpdateEncKDF_Call) RunAndReturn(run func(context.Context, string, []byte, []byte, []byte) error) *MockRepository_UpdateEncKDF_Call {
 	_c.Call.Return(run)
 	return _c
 }

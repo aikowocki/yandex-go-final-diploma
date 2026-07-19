@@ -8,6 +8,7 @@ type VerifyTOTPParams struct {
 	Code   string
 }
 
+// VerifyTOTP проверка TOTP кода для 2FA. TODO
 func (u *UseCase) VerifyTOTP(ctx context.Context, params VerifyTOTPParams) error {
 	return ErrNotImplemented
 }

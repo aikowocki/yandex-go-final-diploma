@@ -70,12 +70,44 @@ func (c *Client) Register(ctx context.Context, login string, loginCredential []b
 
 // SetupEncryption сохраняет на сервере enc_kdf_salt/enc_kdf_params. Требует access-токен
 // (кладётся в metadata как Bearer). MasterKey/EncryptionPassphrase не отправляется.
-func (c *Client) SetupEncryption(ctx context.Context, accessToken string, encKDFSalt, encKDFParams []byte) error {
+func (c *Client) SetupEncryption(ctx context.Context, accessToken string, encKDFSalt, encKDFParams, encMasterKey []byte) error {
 	ctx = withBearer(ctx, accessToken)
 	_, err := c.auth.SetupEncryption(ctx, &pb.SetupEncryptionRequest{
 		EncKdfSalt:   encKDFSalt,
 		EncKdfParams: encKDFParams,
+		EncMasterKey: encMasterKey,
 	})
+	return mapErr(err)
+}
+
+// StoreRecoveryCodes сохраняет recovery codes на сервере.
+func (c *Client) StoreRecoveryCodes(ctx context.Context, accessToken string, codes []contracts.RecoveryCodeEntry) error {
+	ctx = withBearer(ctx, accessToken)
+	pbCodes := make([]*pb.RecoveryCodeEntry, 0, len(codes))
+	for _, code := range codes {
+		pbCodes = append(pbCodes, &pb.RecoveryCodeEntry{
+			CodeId:       code.CodeID,
+			EncMasterKey: code.EncMasterKey,
+		})
+	}
+	_, err := c.auth.StoreRecoveryCodes(ctx, &pb.StoreRecoveryCodesRequest{Codes: pbCodes})
+	return mapErr(err)
+}
+
+// GetRecoveryBlob возвращает зашифрованный MasterKey для указанного code_id.
+func (c *Client) GetRecoveryBlob(ctx context.Context, accessToken, codeID string) ([]byte, error) {
+	ctx = withBearer(ctx, accessToken)
+	resp, err := c.auth.GetRecoveryBlob(ctx, &pb.GetRecoveryBlobRequest{CodeId: codeID})
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	return resp.GetEncMasterKey(), nil
+}
+
+// MarkRecoveryCodeUsed помечает recovery code как использованный.
+func (c *Client) MarkRecoveryCodeUsed(ctx context.Context, accessToken, codeID string) error {
+	ctx = withBearer(ctx, accessToken)
+	_, err := c.auth.MarkRecoveryCodeUsed(ctx, &pb.MarkRecoveryCodeUsedRequest{CodeId: codeID})
 	return mapErr(err)
 }
 
@@ -96,6 +128,7 @@ func (c *Client) Login(ctx context.Context, login string, loginCredential []byte
 		},
 		EncKDFSalt:   resp.GetEncKdfSalt(),
 		EncKDFParams: resp.GetEncKdfParams(),
+		EncMasterKey: resp.GetEncMasterKey(),
 	}, nil
 }
 
@@ -115,11 +148,13 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken string) (contrac
 		},
 		EncKDFSalt:   resp.GetEncKdfSalt(),
 		EncKDFParams: resp.GetEncKdfParams(),
+		EncMasterKey: resp.GetEncMasterKey(),
 	}, nil
 }
 
 // --- VaultService ---
 
+// CreateVault создаёт новую папку на сервере и возвращает её id.
 func (c *Client) CreateVault(ctx context.Context, accessToken string, wrappedVaultKey, encName []byte) (string, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.vault.CreateVault(ctx, &pb.CreateVaultRequest{
@@ -132,6 +167,7 @@ func (c *Client) CreateVault(ctx context.Context, accessToken string, wrappedVau
 	return resp.GetVaultId(), nil
 }
 
+// ListVaults возвращает список папок пользователя с сервера.
 func (c *Client) ListVaults(ctx context.Context, accessToken string) ([]contracts.VaultItem, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.vault.ListVaults(ctx, &pb.ListVaultsRequest{})
@@ -150,6 +186,8 @@ func (c *Client) ListVaults(ctx context.Context, accessToken string) ([]contract
 	return items, nil
 }
 
+// CheckFreshness возвращает {id, version} для всех папок — используется sync, чтобы понять,
+// какие папки устарели локально.
 func (c *Client) CheckFreshness(ctx context.Context, accessToken string) ([]contracts.VaultVersion, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.vault.CheckFreshness(ctx, &pb.CheckFreshnessRequest{})
@@ -168,6 +206,7 @@ func (c *Client) CheckFreshness(ctx context.Context, accessToken string) ([]cont
 
 // --- SecretService ---
 
+// CreateSecret создаёт секрет на сервере с client-generated id.
 func (c *Client) CreateSecret(ctx context.Context, accessToken, secretID, vaultID string, secretType int32, encRow, encIndex, encPayload []byte) error {
 	ctx = withBearer(ctx, accessToken)
 	_, err := c.secret.CreateSecret(ctx, &pb.CreateSecretRequest{
@@ -181,6 +220,7 @@ func (c *Client) CreateSecret(ctx context.Context, accessToken, secretID, vaultI
 	return mapErr(err)
 }
 
+// UpdateSecret обновляет секрет на сервере с оптимистичной блокировкой по версии.
 func (c *Client) UpdateSecret(ctx context.Context, accessToken, secretID string, baseVersion int64, encRow, encIndex, encPayload []byte) (int64, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.secret.UpdateSecret(ctx, &pb.UpdateSecretRequest{
@@ -199,6 +239,7 @@ func (c *Client) UpdateSecret(ctx context.Context, accessToken, secretID string,
 	return resp.GetVersion(), nil
 }
 
+// DeleteSecret выполняет soft-delete секрета на сервере с оптимистичной блокировкой по версии.
 func (c *Client) DeleteSecret(ctx context.Context, accessToken, secretID string, baseVersion int64) error {
 	ctx = withBearer(ctx, accessToken)
 	_, err := c.secret.DeleteSecret(ctx, &pb.DeleteSecretRequest{
@@ -214,6 +255,7 @@ func (c *Client) DeleteSecret(ctx context.Context, accessToken, secretID string,
 	return nil
 }
 
+// ListSecretRows возвращает Tier 1 (row) всех секретов папки.
 func (c *Client) ListSecretRows(ctx context.Context, accessToken, vaultID string) ([]contracts.SecretRowItem, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.secret.ListRow(ctx, &pb.ListRowRequest{VaultId: vaultID})
@@ -232,6 +274,7 @@ func (c *Client) ListSecretRows(ctx context.Context, accessToken, vaultID string
 	return items, nil
 }
 
+// ListSecretIndex возвращает Tier 2 (index) всех секретов папки.
 func (c *Client) ListSecretIndex(ctx context.Context, accessToken, vaultID string) ([]contracts.SecretIndexItem, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.secret.ListIndex(ctx, &pb.ListIndexRequest{VaultId: vaultID})
@@ -249,6 +292,7 @@ func (c *Client) ListSecretIndex(ctx context.Context, accessToken, vaultID strin
 	return items, nil
 }
 
+// GetSecretPayload возвращает Tier 3 (payload) секрета по id.
 func (c *Client) GetSecretPayload(ctx context.Context, accessToken, secretID string) (contracts.SecretPayloadItem, error) {
 	ctx = withBearer(ctx, accessToken)
 	resp, err := c.secret.GetPayload(ctx, &pb.GetPayloadRequest{SecretId: secretID})

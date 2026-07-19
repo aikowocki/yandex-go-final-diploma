@@ -2,6 +2,7 @@ package secret
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/domain/secretcontent"
@@ -38,16 +39,20 @@ func (u *UseCase) Search(ctx context.Context, vaultID, query string) (SearchResu
 			res.Incomplete = true
 		}
 
+		// Битый секрет (повреждённый кеш, рассинхрон версии после гонки конфликтов и т.п.)
+		// не должен обрывать поиск по всей папке — пропускаем с логом.
 		rowMap, row, err := u.decryptRowGeneric(vaultKey, vaultID, it.ID, it.Version, it.EncRow)
 		if err != nil {
-			return SearchResult{}, err
+			slog.Warn("secret: search: decrypt row failed, skipping", "secret_id", it.ID, "err", err)
+			continue
 		}
 
 		match := q == "" || matchesQuery(rowMap, q)
 		if !match && it.IndexLoaded {
 			idxMap, err := u.decryptIndexGeneric(vaultKey, vaultID, it.ID, it.Version, it.EncIndex)
 			if err != nil {
-				return SearchResult{}, err
+				slog.Warn("secret: search: decrypt index failed, skipping", "secret_id", it.ID, "err", err)
+				continue
 			}
 			match = matchesQuery(idxMap, q)
 		}

@@ -14,6 +14,7 @@ import (
 // SyncCmd синхронизирует локальный кеш с сервером и проигрывает оффлайн-очередь.
 type SyncCmd struct{}
 
+// Run синхронизирует локальный кеш с сервером и проигрывает оффлайн-очередь.
 func (c *SyncCmd) Run(auth *authuc.UseCase, sync *syncuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

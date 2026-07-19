@@ -57,6 +57,8 @@ func (u *UseCase) replayEntry(ctx context.Context, token string, e contracts.Out
 		return u.replayUpdate(ctx, token, e)
 	case contracts.OutboxOpDelete:
 		return u.replayDelete(ctx, token, e)
+	case contracts.OutboxOpBlobUpload:
+		return u.replayBlobUpload(ctx, e)
 	default:
 		return false, fmt.Errorf("replay outbox %d: unknown op %q", e.ID, e.Op)
 	}
@@ -115,6 +117,23 @@ func (u *UseCase) replayDelete(ctx context.Context, token string, e contracts.Ou
 		return u.handleReplayConflict(ctx, e, err)
 	}
 	return true, u.local.DeleteSecret(ctx, p.SecretID)
+}
+
+func (u *UseCase) replayBlobUpload(ctx context.Context, e contracts.OutboxEntry) (bool, error) {
+	if u.blobUploader == nil {
+		return false, fmt.Errorf("replay outbox %d: blob uploader not configured", e.ID)
+	}
+	var p contracts.OutboxBlobUpload
+	if err := json.Unmarshal(e.Payload, &p); err != nil {
+		return false, fmt.Errorf("decode outbox blob_upload %d: %w", e.ID, err)
+	}
+	if err := u.blobUploader.RetryBlobUpload(ctx, p.SecretID, p.VaultID); err != nil {
+		if isOffline(err) {
+			return false, nil // сеть недоступна — оставляем в очереди
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // handleReplayConflict помечает запись conflict, если ошибка — конфликт версий; иначе пробрасывает.

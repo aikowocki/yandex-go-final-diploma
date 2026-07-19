@@ -7,16 +7,20 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/session"
 )
 
+// UseCase реализует клиентские сценарии работы с секретами (создание, обновление, чтение,
+// синхронизация и разрешение конфликтов версий).
 type UseCase struct {
-	server contracts.ServerClient
-	cipher contracts.Cipher
-	tokens contracts.TokenStore
-	sess   *session.Session
-	local  contracts.LocalStorage
+	server  contracts.ServerClient
+	cipher  contracts.Cipher
+	tokens  contracts.TokenStore
+	sess    *session.Session
+	local   contracts.LocalStorage
+	dataDir string
 }
 
-func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session, local contracts.LocalStorage) *UseCase {
-	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess, local: local}
+// New создаёт клиентский secret-usecase.
+func New(server contracts.ServerClient, cipher contracts.Cipher, tokens contracts.TokenStore, sess *session.Session, local contracts.LocalStorage, dataDir string) *UseCase {
+	return &UseCase{server: server, cipher: cipher, tokens: tokens, sess: sess, local: local, dataDir: dataDir}
 }
 
 func (u *UseCase) accessToken() (string, error) {
@@ -36,6 +40,7 @@ func (u *UseCase) vaultKey(vaultID string) ([]byte, error) {
 	return vk, nil
 }
 
+// LocalVersion возвращает версию секрета из локального кеша и признак его наличия.
 func (u *UseCase) LocalVersion(ctx context.Context, secretID string) (version int64, ok bool, err error) {
 	sec, ok, err := u.local.GetSecret(ctx, secretID)
 	if err != nil || !ok {

@@ -15,6 +15,7 @@ type contextKey string
 
 const userIDContextKey contextKey = "userID"
 
+// TokenVerifier проверяет access-токен и возвращает идентификатор пользователя.
 type TokenVerifier interface {
 	Verify(token string) (userID string, err error)
 }
@@ -59,6 +60,12 @@ func Auth(verifier TokenVerifier) grpc.UnaryServerInterceptor {
 func UserIDFromContext(ctx context.Context) (string, bool) {
 	userID, ok := ctx.Value(userIDContextKey).(string)
 	return userID, ok
+}
+
+// ContextWithUserID кладёт userID в context тем же ключом, что и Auth/StreamAuth. Нужен для
+// юнит-тестов grpc-сервисов.
+func ContextWithUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, userIDContextKey, userID)
 }
 
 // authenticatedStream оборачивает grpc.ServerStream, подменяя Context() на контекст с userID —

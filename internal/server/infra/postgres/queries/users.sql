@@ -15,5 +15,6 @@ WHERE id = $1;
 UPDATE users
 SET enc_kdf_salt = $2,
     enc_kdf_params = $3,
+    enc_master_key = $4,
     updated_at = now()
 WHERE id = $1;

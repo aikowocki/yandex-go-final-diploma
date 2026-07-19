@@ -8,6 +8,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type RecoveryCode struct {
+	ID           int64
+	UserID       pgtype.UUID
+	CodeID       string
+	EncMasterKey []byte
+	Used         bool
+	CreatedAt    pgtype.Timestamptz
+}
+
 // Секреты внутри папки.
 type Secret struct {
 	ID      pgtype.UUID
@@ -46,6 +55,8 @@ type User struct {
 	TotpEnabled bool
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+	// Случайный MasterKey, обёрнутый ключом KEK (derived from EncryptionPassphrase через Argon2id+HKDF). Позволяет менять пароль без перешифровки vault keys.
+	EncMasterKey []byte
 }
 
 // Ваулты(Папки) пользователя.

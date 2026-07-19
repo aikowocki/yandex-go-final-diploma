@@ -31,7 +31,7 @@ func TestRefreshToken_Integration_AcceptsRefreshToken(t *testing.T) {
 	users.EXPECT().GetByID(mock.Anything, "user-1").
 		Return(domain.User{ID: "user-1", EncKDFSalt: []byte("salt")}, nil)
 
-	uc := auth.New(users, issuer, passthroughTx{})
+	uc := auth.New(users, nil, issuer, passthroughTx{})
 
 	res, err := uc.RefreshToken(context.Background(), auth.RefreshParams{RefreshToken: refresh})
 	require.NoError(t, err) // с багом (Verify вместо VerifyRefresh) здесь была бы ошибка
@@ -54,7 +54,7 @@ func TestRefreshToken_Integration_RejectsAccessTokenAsRefresh(t *testing.T) {
 	// GetByID не должен вызываться — проверка типа токена падает раньше.
 	users := mocks.NewMockRepository(t)
 
-	uc := auth.New(users, issuer, passthroughTx{})
+	uc := auth.New(users, nil, issuer, passthroughTx{})
 
 	_, err = uc.RefreshToken(context.Background(), auth.RefreshParams{RefreshToken: access})
 	assert.ErrorIs(t, err, auth.ErrInvalidRefreshToken)

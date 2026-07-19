@@ -6,10 +6,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DB оборачивает пул соединений pgx.
 type DB struct {
 	*pgxpool.Pool
 }
 
+// NewPool создаёт пул соединений с БД по DSN и проверяет доступность через Ping.
 func NewPool(ctx context.Context, dsn string) (*DB, error) {
 	pool, err := pgxpool.New(ctx, dsn)
 

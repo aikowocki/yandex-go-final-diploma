@@ -67,11 +67,52 @@ func TestStore_FileFallback(t *testing.T) {
 	assert.Equal(t, sampleTokens(), got)
 }
 
-func TestStore_KeyringFailsNoFallback(t *testing.T) {
+// TestStore_NoPersist_UsesMemoryOnly — persist=false (--no-persist) должен работать полностью
+// в памяти процесса и НЕ трогать системный OS keyring вообще, даже если он исправен.
+func TestStore_NoPersist_UsesMemoryOnly(t *testing.T) {
+	gokeyring.MockInit() // keyring исправен — но не должен использоваться при persist=false
+
+	dir := t.TempDir()
+	s := keyring.New(dir, false)
+
+	require.NoError(t, s.Save(sampleTokens()))
+
+	got, err := s.Load()
+	require.NoError(t, err)
+	assert.Equal(t, sampleTokens(), got)
+
+	// Ни файл, ни системный keyring не должны быть тронуты.
+	_, statErr := os.Stat(filepath.Join(dir, "token.json"))
+	assert.ErrorIs(t, statErr, os.ErrNotExist, "no-persist must not write a token file")
+
+	independentStore := keyring.New(dir, true) // persist=true — читает из keyring/файла
+	_, err = independentStore.Load()
+	assert.ErrorIs(t, err, keyring.ErrNoToken, "no-persist tokens must not leak into the OS keyring")
+}
+
+// TestStore_NoPersist_EvenWhenKeyringFails — no-persist не деградирует в файловый fallback
+// при недоступном keyring: он просто не использует ни то, ни другое, независимо от их
+// состояния — только память.
+func TestStore_NoPersist_EvenWhenKeyringFails(t *testing.T) {
 	gokeyring.MockInitWithError(errors.New("keyring unavailable"))
 
 	s := keyring.New(t.TempDir(), false)
 
-	err := s.Save(sampleTokens())
-	require.Error(t, err, "must fail when keyring is down and file fallback is disabled")
+	require.NoError(t, s.Save(sampleTokens()), "no-persist Save must succeed purely in-memory regardless of OS keyring state")
+
+	got, err := s.Load()
+	require.NoError(t, err)
+	assert.Equal(t, sampleTokens(), got)
+}
+
+// TestStore_NoPersist_Clear сбрасывает только in-memory состояние.
+func TestStore_NoPersist_Clear(t *testing.T) {
+	gokeyring.MockInit()
+
+	s := keyring.New(t.TempDir(), false)
+	require.NoError(t, s.Save(sampleTokens()))
+	require.NoError(t, s.Clear())
+
+	_, err := s.Load()
+	require.ErrorIs(t, err, keyring.ErrNoToken)
 }

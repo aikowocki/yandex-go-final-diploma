@@ -11,6 +11,10 @@ service AuthService {
   rpc SetupEncryption(SetupEncryptionRequest) returns (SetupEncryptionResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  // Recovery codes — одноразовые коды восстановления MasterKey.
+  rpc StoreRecoveryCodes(StoreRecoveryCodesRequest) returns (StoreRecoveryCodesResponse);
+  rpc GetRecoveryBlob(GetRecoveryBlobRequest) returns (GetRecoveryBlobResponse);
+  rpc MarkRecoveryCodeUsed(MarkRecoveryCodeUsedRequest) returns (MarkRecoveryCodeUsedResponse);
 }
 
 // VaultService — CRUD папок
@@ -220,6 +224,7 @@ message SetupEncryptionRequest {
   // user_id берётся из access-токена (JWT-интерцептор), в запросе не передаётся.
   bytes enc_kdf_salt = 1;
   bytes enc_kdf_params = 2; // JSON crypto.Params
+  bytes enc_master_key = 3; // случайный MasterKey, обёрнутый KEK
 }
 
 message SetupEncryptionResponse {}
@@ -235,6 +240,7 @@ message LoginResponse {
   bytes enc_kdf_salt = 3;
   bytes enc_kdf_params = 4;
   string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+  bytes enc_master_key = 6; // MasterKey, обёрнутый KEK
 }
 
 message RefreshTokenRequest {
@@ -247,4 +253,33 @@ message RefreshTokenResponse {
   bytes enc_kdf_salt = 3;
   bytes enc_kdf_params = 4;
   string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+  bytes enc_master_key = 6; // MasterKey, обёрнутый KEK
 }
+
+
+// --- Recovery Codes ---
+
+message RecoveryCodeEntry {
+  string code_id = 1;          // SHA256(code)[:8] hex — для поиска без раскрытия кода
+  bytes enc_master_key = 2;    // MasterKey, зашифрованный recovery_key
+}
+
+message StoreRecoveryCodesRequest {
+  repeated RecoveryCodeEntry codes = 1; // обычно 5 записей
+}
+
+message StoreRecoveryCodesResponse {}
+
+message GetRecoveryBlobRequest {
+  string code_id = 1;
+}
+
+message GetRecoveryBlobResponse {
+  bytes enc_master_key = 1; // зашифрованный MasterKey для этого code_id
+}
+
+message MarkRecoveryCodeUsedRequest {
+  string code_id = 1;
+}
+
+message MarkRecoveryCodeUsedResponse {}

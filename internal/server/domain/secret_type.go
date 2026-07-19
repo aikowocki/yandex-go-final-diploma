@@ -1,7 +1,9 @@
 package domain
 
+// SecretType определяет тип содержимого секрета.
 type SecretType int16
 
+// Типы секретов.
 const (
 	SecretTypeLoginPassword SecretType = 1
 	SecretTypeText          SecretType = 2

@@ -46,11 +46,11 @@ func TestUpdate_ConflictDecryptsBothVersions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, conflict)
 
-	assert.Equal(t, "MyTitle", conflict.Mine.Row.Title)
-	assert.Equal(t, "ServerTitle", conflict.Server.Row.Title)
-	assert.Equal(t, "server-note", conflict.Server.Index.Note)
-	assert.Equal(t, "srvpass", conflict.Server.Payload.Password)
-	assert.Equal(t, int64(5), conflict.Server.Version)
+	assert.Equal(t, "MyTitle", conflict.MineRow["title"])
+	assert.Equal(t, "ServerTitle", conflict.ServerRow["title"])
+	assert.Equal(t, "server-note", conflict.ServerIndex["note"])
+	assert.Equal(t, "srvpass", conflict.ServerPayload["password"])
+	assert.Equal(t, int64(5), conflict.ServerVersion)
 }
 
 // ChoiceMine: повторный Update с base=server.Version перезатирает серверную версию.
@@ -73,7 +73,7 @@ func TestResolveConflict_Mine(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, conflict)
 
-	next, err := uc.ResolveConflict(context.Background(), conflict, secret.ChoiceMine)
+	next, err := uc.GenericResolveConflict(context.Background(), conflict, secret.ChoiceMine)
 	require.NoError(t, err)
 	assert.Nil(t, next, "перезапись прошла без нового конфликта")
 
@@ -100,7 +100,7 @@ func TestResolveConflict_Server(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, conflict)
 
-	next, err := uc.ResolveConflict(context.Background(), conflict, secret.ChoiceServer)
+	next, err := uc.GenericResolveConflict(context.Background(), conflict, secret.ChoiceServer)
 	require.NoError(t, err)
 	assert.Nil(t, next)
 

@@ -10,6 +10,7 @@ type LocalVault struct {
 	Version         int64
 	SyncedVersion   int64
 	Deleted         bool
+	SyncEnabled     bool
 }
 
 // LocalSecret — строка локального кеша секрета. enc_index/enc_payload могут быть nil (лениво).
@@ -30,10 +31,12 @@ type LocalSecret struct {
 // OutboxOp — тип отложенной оффлайн-операции.
 type OutboxOp string
 
+// Возможные значения OutboxOp.
 const (
-	OutboxOpCreate OutboxOp = "create"
-	OutboxOpUpdate OutboxOp = "update"
-	OutboxOpDelete OutboxOp = "delete"
+	OutboxOpCreate     OutboxOp = "create"
+	OutboxOpUpdate     OutboxOp = "update"
+	OutboxOpDelete     OutboxOp = "delete"
+	OutboxOpBlobUpload OutboxOp = "blob_upload"
 )
 
 // OutboxEntry — запись очереди оффлайн-изменений.
@@ -88,12 +91,20 @@ type OutboxSecretDelete struct {
 	BaseVersion int64  `json:"base_version"`
 }
 
+// OutboxBlobUpload — тело outbox-операции отложенной загрузки бинарного файла (op=blob_upload).
+// Файл хранится в <data_dir>/pending_uploads/<secret_id>/<filename>.
+type OutboxBlobUpload struct {
+	SecretID string `json:"secret_id"`
+	VaultID  string `json:"vault_id"`
+}
+
 // LocalStorage — локальное SQLite-хранилище клиента (кеш + оффлайн-очередь).
 type LocalStorage interface {
 	UpsertVault(ctx context.Context, v LocalVault) error
 	ListVaults(ctx context.Context) ([]LocalVault, error)
 	GetVault(ctx context.Context, id string) (LocalVault, bool, error)
 	SetVaultSyncedVersion(ctx context.Context, id string, syncedVersion int64) error
+	SetVaultSyncEnabled(ctx context.Context, id string, enabled bool) error
 	DeleteVault(ctx context.Context, id string) error
 
 	UpsertSecretRow(ctx context.Context, s LocalSecret) error

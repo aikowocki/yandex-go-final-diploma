@@ -365,6 +365,66 @@ func (_c *MockServerClient_DownloadBlob_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// GetRecoveryBlob provides a mock function with given fields: ctx, accessToken, codeID
+func (_m *MockServerClient) GetRecoveryBlob(ctx context.Context, accessToken string, codeID string) ([]byte, error) {
+	ret := _m.Called(ctx, accessToken, codeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRecoveryBlob")
+	}
+
+	var r0 []byte
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]byte, error)); ok {
+		return rf(ctx, accessToken, codeID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []byte); ok {
+		r0 = rf(ctx, accessToken, codeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, accessToken, codeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockServerClient_GetRecoveryBlob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRecoveryBlob'
+type MockServerClient_GetRecoveryBlob_Call struct {
+	*mock.Call
+}
+
+// GetRecoveryBlob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - codeID string
+func (_e *MockServerClient_Expecter) GetRecoveryBlob(ctx interface{}, accessToken interface{}, codeID interface{}) *MockServerClient_GetRecoveryBlob_Call {
+	return &MockServerClient_GetRecoveryBlob_Call{Call: _e.mock.On("GetRecoveryBlob", ctx, accessToken, codeID)}
+}
+
+func (_c *MockServerClient_GetRecoveryBlob_Call) Run(run func(ctx context.Context, accessToken string, codeID string)) *MockServerClient_GetRecoveryBlob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_GetRecoveryBlob_Call) Return(_a0 []byte, _a1 error) *MockServerClient_GetRecoveryBlob_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockServerClient_GetRecoveryBlob_Call) RunAndReturn(run func(context.Context, string, string) ([]byte, error)) *MockServerClient_GetRecoveryBlob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetSecretPayload provides a mock function with given fields: ctx, accessToken, secretID
 func (_m *MockServerClient) GetSecretPayload(ctx context.Context, accessToken string, secretID string) (contracts.SecretPayloadItem, error) {
 	ret := _m.Called(ctx, accessToken, secretID)
@@ -660,6 +720,54 @@ func (_c *MockServerClient_Login_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// MarkRecoveryCodeUsed provides a mock function with given fields: ctx, accessToken, codeID
+func (_m *MockServerClient) MarkRecoveryCodeUsed(ctx context.Context, accessToken string, codeID string) error {
+	ret := _m.Called(ctx, accessToken, codeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkRecoveryCodeUsed")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, accessToken, codeID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockServerClient_MarkRecoveryCodeUsed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkRecoveryCodeUsed'
+type MockServerClient_MarkRecoveryCodeUsed_Call struct {
+	*mock.Call
+}
+
+// MarkRecoveryCodeUsed is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - codeID string
+func (_e *MockServerClient_Expecter) MarkRecoveryCodeUsed(ctx interface{}, accessToken interface{}, codeID interface{}) *MockServerClient_MarkRecoveryCodeUsed_Call {
+	return &MockServerClient_MarkRecoveryCodeUsed_Call{Call: _e.mock.On("MarkRecoveryCodeUsed", ctx, accessToken, codeID)}
+}
+
+func (_c *MockServerClient_MarkRecoveryCodeUsed_Call) Run(run func(ctx context.Context, accessToken string, codeID string)) *MockServerClient_MarkRecoveryCodeUsed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_MarkRecoveryCodeUsed_Call) Return(_a0 error) *MockServerClient_MarkRecoveryCodeUsed_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockServerClient_MarkRecoveryCodeUsed_Call) RunAndReturn(run func(context.Context, string, string) error) *MockServerClient_MarkRecoveryCodeUsed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RefreshToken provides a mock function with given fields: ctx, refreshToken
 func (_m *MockServerClient) RefreshToken(ctx context.Context, refreshToken string) (contracts.LoginResult, error) {
 	ret := _m.Called(ctx, refreshToken)
@@ -775,17 +883,17 @@ func (_c *MockServerClient_Register_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// SetupEncryption provides a mock function with given fields: ctx, accessToken, encKDFSalt, encKDFParams
-func (_m *MockServerClient) SetupEncryption(ctx context.Context, accessToken string, encKDFSalt []byte, encKDFParams []byte) error {
-	ret := _m.Called(ctx, accessToken, encKDFSalt, encKDFParams)
+// SetupEncryption provides a mock function with given fields: ctx, accessToken, encKDFSalt, encKDFParams, encMasterKey
+func (_m *MockServerClient) SetupEncryption(ctx context.Context, accessToken string, encKDFSalt []byte, encKDFParams []byte, encMasterKey []byte) error {
+	ret := _m.Called(ctx, accessToken, encKDFSalt, encKDFParams, encMasterKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetupEncryption")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte) error); ok {
-		r0 = rf(ctx, accessToken, encKDFSalt, encKDFParams)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []byte, []byte, []byte) error); ok {
+		r0 = rf(ctx, accessToken, encKDFSalt, encKDFParams, encMasterKey)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -803,13 +911,14 @@ type MockServerClient_SetupEncryption_Call struct {
 //   - accessToken string
 //   - encKDFSalt []byte
 //   - encKDFParams []byte
-func (_e *MockServerClient_Expecter) SetupEncryption(ctx interface{}, accessToken interface{}, encKDFSalt interface{}, encKDFParams interface{}) *MockServerClient_SetupEncryption_Call {
-	return &MockServerClient_SetupEncryption_Call{Call: _e.mock.On("SetupEncryption", ctx, accessToken, encKDFSalt, encKDFParams)}
+//   - encMasterKey []byte
+func (_e *MockServerClient_Expecter) SetupEncryption(ctx interface{}, accessToken interface{}, encKDFSalt interface{}, encKDFParams interface{}, encMasterKey interface{}) *MockServerClient_SetupEncryption_Call {
+	return &MockServerClient_SetupEncryption_Call{Call: _e.mock.On("SetupEncryption", ctx, accessToken, encKDFSalt, encKDFParams, encMasterKey)}
 }
 
-func (_c *MockServerClient_SetupEncryption_Call) Run(run func(ctx context.Context, accessToken string, encKDFSalt []byte, encKDFParams []byte)) *MockServerClient_SetupEncryption_Call {
+func (_c *MockServerClient_SetupEncryption_Call) Run(run func(ctx context.Context, accessToken string, encKDFSalt []byte, encKDFParams []byte, encMasterKey []byte)) *MockServerClient_SetupEncryption_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte))
+		run(args[0].(context.Context), args[1].(string), args[2].([]byte), args[3].([]byte), args[4].([]byte))
 	})
 	return _c
 }
@@ -819,7 +928,55 @@ func (_c *MockServerClient_SetupEncryption_Call) Return(_a0 error) *MockServerCl
 	return _c
 }
 
-func (_c *MockServerClient_SetupEncryption_Call) RunAndReturn(run func(context.Context, string, []byte, []byte) error) *MockServerClient_SetupEncryption_Call {
+func (_c *MockServerClient_SetupEncryption_Call) RunAndReturn(run func(context.Context, string, []byte, []byte, []byte) error) *MockServerClient_SetupEncryption_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// StoreRecoveryCodes provides a mock function with given fields: ctx, accessToken, codes
+func (_m *MockServerClient) StoreRecoveryCodes(ctx context.Context, accessToken string, codes []contracts.RecoveryCodeEntry) error {
+	ret := _m.Called(ctx, accessToken, codes)
+
+	if len(ret) == 0 {
+		panic("no return value specified for StoreRecoveryCodes")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []contracts.RecoveryCodeEntry) error); ok {
+		r0 = rf(ctx, accessToken, codes)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockServerClient_StoreRecoveryCodes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'StoreRecoveryCodes'
+type MockServerClient_StoreRecoveryCodes_Call struct {
+	*mock.Call
+}
+
+// StoreRecoveryCodes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - accessToken string
+//   - codes []contracts.RecoveryCodeEntry
+func (_e *MockServerClient_Expecter) StoreRecoveryCodes(ctx interface{}, accessToken interface{}, codes interface{}) *MockServerClient_StoreRecoveryCodes_Call {
+	return &MockServerClient_StoreRecoveryCodes_Call{Call: _e.mock.On("StoreRecoveryCodes", ctx, accessToken, codes)}
+}
+
+func (_c *MockServerClient_StoreRecoveryCodes_Call) Run(run func(ctx context.Context, accessToken string, codes []contracts.RecoveryCodeEntry)) *MockServerClient_StoreRecoveryCodes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]contracts.RecoveryCodeEntry))
+	})
+	return _c
+}
+
+func (_c *MockServerClient_StoreRecoveryCodes_Call) Return(_a0 error) *MockServerClient_StoreRecoveryCodes_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockServerClient_StoreRecoveryCodes_Call) RunAndReturn(run func(context.Context, string, []contracts.RecoveryCodeEntry) error) *MockServerClient_StoreRecoveryCodes_Call {
 	_c.Call.Return(run)
 	return _c
 }

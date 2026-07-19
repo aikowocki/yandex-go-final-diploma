@@ -6,6 +6,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/server/domain"
 )
 
+// ErrConflict указывает на конфликт версии при обновлении секрета с использованием оптимистической блокировки.
 type ErrConflict struct {
 	Current domain.Secret
 }

@@ -51,7 +51,7 @@ func (s *Store) listOutbox(ctx context.Context, where string, args ...any) ([]co
 	if err != nil {
 		return nil, fmt.Errorf("localstore: list outbox: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []contracts.OutboxEntry
 	for rows.Next() {
@@ -91,6 +91,7 @@ func (s *Store) SetOutboxStatus(ctx context.Context, id int64, status contracts.
 	return nil
 }
 
+// RemoveOutbox удаляет запись очереди по id.
 func (s *Store) RemoveOutbox(ctx context.Context, id int64) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM outbox WHERE id = ?`, id)
 	if err != nil {

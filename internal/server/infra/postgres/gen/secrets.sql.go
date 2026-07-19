@@ -11,6 +11,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const attachBlob = `-- name: AttachBlob :one
+UPDATE secrets
+SET blob_ref = $2, blob_size = $3, updated_at = now()
+WHERE id = $1
+RETURNING version
+`
+
+type AttachBlobParams struct {
+	ID       pgtype.UUID
+	BlobRef  pgtype.Text
+	BlobSize pgtype.Int8
+}
+
+// AttachBlob — прописывает blob_ref/blob_size секрету type=binary ПОСЛЕ того как клиент успешно
+// залил зашифрованный блоб в MinIO.
+func (q *Queries) AttachBlob(ctx context.Context, arg AttachBlobParams) (int64, error) {
+	row := q.db.QueryRow(ctx, attachBlob, arg.ID, arg.BlobRef, arg.BlobSize)
+	var version int64
+	err := row.Scan(&version)
+	return version, err
+}
+
 const bumpVaultVersion = `-- name: BumpVaultVersion :exec
 UPDATE vaults
 SET version = version + 1, updated_at = now()

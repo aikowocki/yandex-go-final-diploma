@@ -17,6 +17,7 @@ type SecretRepo struct {
 
 var _ secret.Repository = (*SecretRepo)(nil)
 
+// NewSecretRepo создаёт SecretRepo поверх переданного пула соединений.
 func NewSecretRepo(db *DB) *SecretRepo {
 	return &SecretRepo{db: db}
 }
@@ -25,6 +26,7 @@ func (r *SecretRepo) q(ctx context.Context) *gen.Queries {
 	return gen.New(r.db.querier(ctx))
 }
 
+// Create создаёт новый секрет в указанной папке.
 func (r *SecretRepo) Create(ctx context.Context, s domain.Secret) (domain.Secret, error) {
 	vaultID, err := parseUUID(s.VaultID)
 	if err != nil {
@@ -155,6 +157,7 @@ func (r *SecretRepo) BumpVaultVersion(ctx context.Context, vaultID string) error
 	return nil
 }
 
+// ListRow возвращает все секреты папки в виде "строк" (шифрованный EncRow) для синхронизации.
 func (r *SecretRepo) ListRow(ctx context.Context, vaultID, userID string) ([]domain.Secret, error) {
 	vid, err := parseUUID(vaultID)
 	if err != nil {
@@ -183,6 +186,7 @@ func (r *SecretRepo) ListRow(ctx context.Context, vaultID, userID string) ([]dom
 	return secrets, nil
 }
 
+// ListIndex возвращает индексные записи (EncIndex) секретов папки для клиентского поиска.
 func (r *SecretRepo) ListIndex(ctx context.Context, vaultID, userID string) ([]domain.Secret, error) {
 	vid, err := parseUUID(vaultID)
 	if err != nil {
@@ -210,6 +214,7 @@ func (r *SecretRepo) ListIndex(ctx context.Context, vaultID, userID string) ([]d
 	return secrets, nil
 }
 
+// GetPayload возвращает зашифрованный payload секрета, принадлежащего пользователю.
 func (r *SecretRepo) GetPayload(ctx context.Context, secretID, userID string) (domain.Secret, error) {
 	sid, err := parseUUID(secretID)
 	if err != nil {

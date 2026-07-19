@@ -20,13 +20,14 @@ func TestSetupEncryption_Success(t *testing.T) {
 	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
 	users.EXPECT().
-		UpdateEncKDF(mock.Anything, "user-1", []byte("salt"), []byte(`{"version":1}`)).
+		UpdateEncKDF(mock.Anything, "user-1", []byte("salt"), []byte(`{"version":1}`), []byte("encmk")).
 		Return(nil)
 
 	err := newUseCase(users, mocks.NewMockTokenIssuer(t)).SetupEncryption(context.Background(), auth.SetupEncryptionParams{
 		UserID:       "user-1",
 		EncKDFSalt:   []byte("salt"),
 		EncKDFParams: []byte(`{"version":1}`),
+		EncMasterKey: []byte("encmk"),
 	})
 
 	require.NoError(t, err)
@@ -51,7 +52,7 @@ func TestSetupEncryption_UpdateError(t *testing.T) {
 	wantErr := errors.New("connection refused")
 	users := mocks.NewMockRepository(t)
 	users.EXPECT().GetByID(mock.Anything, "user-1").Return(domain.User{ID: "user-1"}, nil)
-	users.EXPECT().UpdateEncKDF(mock.Anything, "user-1", mock.Anything, mock.Anything).Return(wantErr)
+	users.EXPECT().UpdateEncKDF(mock.Anything, "user-1", mock.Anything, mock.Anything, mock.Anything).Return(wantErr)
 
 	err := newUseCase(users, mocks.NewMockTokenIssuer(t)).SetupEncryption(context.Background(), auth.SetupEncryptionParams{
 		UserID: "user-1",

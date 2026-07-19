@@ -10,7 +10,9 @@ import (
 )
 
 // UpsertSecretRow вставляет/обновляет Tier 2a (enc_row/type/version + флаги). При конфликте
-// закешированные enc_index/enc_payload и их loaded-флаги НЕ затираются (обновляем только строку).
+// закешированные enc_index/enc_payload и их loaded-флаги сбрасываются, ЕСЛИ версия изменилась —
+// иначе кеш содержал бы payload, зашифрованный под старую версию (AAD включает version), а
+// payloadCiphertext вернул бы его с новой version → decrypt failure.
 func (s *Store) UpsertSecretRow(ctx context.Context, sec contracts.LocalSecret) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO secrets (id, vault_id, type, enc_row, enc_index, enc_payload,
@@ -22,7 +24,11 @@ func (s *Store) UpsertSecretRow(ctx context.Context, sec contracts.LocalSecret) 
 			enc_row  = excluded.enc_row,
 			version  = excluded.version,
 			dirty    = excluded.dirty,
-			deleted  = excluded.deleted`,
+			deleted  = excluded.deleted,
+			payload_loaded = CASE WHEN secrets.version != excluded.version THEN 0 ELSE secrets.payload_loaded END,
+			index_loaded   = CASE WHEN secrets.version != excluded.version THEN 0 ELSE secrets.index_loaded END,
+			enc_payload    = CASE WHEN secrets.version != excluded.version THEN NULL ELSE secrets.enc_payload END,
+			enc_index      = CASE WHEN secrets.version != excluded.version THEN NULL ELSE secrets.enc_index END`,
 		sec.ID, sec.VaultID, sec.Type, sec.EncRow, sec.EncIndex, sec.EncPayload,
 		sec.Version, boolToInt(sec.IndexLoaded), boolToInt(sec.PayloadLoaded),
 		boolToInt(sec.Dirty), boolToInt(sec.Deleted))
@@ -33,33 +39,36 @@ func (s *Store) UpsertSecretRow(ctx context.Context, sec contracts.LocalSecret) 
 }
 
 // SetSecretPayload кеширует Tier 3 (enc_payload) и выставляет payload_loaded=1.
+// Обновляет только если version в БД совпадает с переданной (enc_payload привязан к конкретной
+// version через AAD) — иначе игнорирует (stale payload, следующий sync подтянет).
 func (s *Store) SetSecretPayload(ctx context.Context, id string, encPayload []byte, version int64) error {
 	res, err := s.db.ExecContext(ctx, `
-		UPDATE secrets SET enc_payload = ?, payload_loaded = 1, version = ? WHERE id = ?`,
-		encPayload, version, id)
+		UPDATE secrets SET enc_payload = ?, payload_loaded = 1 WHERE id = ? AND version = ?`,
+		encPayload, id, version)
 	if err != nil {
 		return fmt.Errorf("localstore: set secret payload: %w", err)
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return fmt.Errorf("localstore: set secret payload: secret %q not found", id)
-	}
+	_ = res
 	return nil
 }
 
 // SetSecretIndex кеширует Tier 2b (enc_index) и выставляет index_loaded=1.
+// Обновляет только если version в БД совпадает с переданной (enc_index привязан к конкретной
+// version через AAD) — иначе игнорирует (stale index от прошлого RPC, следующий sync подтянет).
 func (s *Store) SetSecretIndex(ctx context.Context, id string, encIndex []byte, version int64) error {
 	res, err := s.db.ExecContext(ctx, `
-		UPDATE secrets SET enc_index = ?, index_loaded = 1, version = ? WHERE id = ?`,
-		encIndex, version, id)
+		UPDATE secrets SET enc_index = ?, index_loaded = 1 WHERE id = ? AND version = ?`,
+		encIndex, id, version)
 	if err != nil {
 		return fmt.Errorf("localstore: set secret index: %w", err)
 	}
-	if n, _ := res.RowsAffected(); n == 0 {
-		return fmt.Errorf("localstore: set secret index: secret %q not found", id)
-	}
+	// Если version не совпала (n==0) — не ошибка: секрет мог обновиться между pullVaultRows
+	// и LoadIndexes, следующий sync-цикл подтянет свежий индекс.
+	_ = res
 	return nil
 }
 
+// ListSecretsByVault возвращает все неудалённые секреты указанного vault.
 func (s *Store) ListSecretsByVault(ctx context.Context, vaultID string) ([]contracts.LocalSecret, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, vault_id, type, enc_row, enc_index, enc_payload,
@@ -68,7 +77,7 @@ func (s *Store) ListSecretsByVault(ctx context.Context, vaultID string) ([]contr
 	if err != nil {
 		return nil, fmt.Errorf("localstore: list secrets: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []contracts.LocalSecret
 	for rows.Next() {
@@ -81,6 +90,7 @@ func (s *Store) ListSecretsByVault(ctx context.Context, vaultID string) ([]contr
 	return result, rows.Err()
 }
 
+// GetSecret возвращает секрет по id, если он существует.
 func (s *Store) GetSecret(ctx context.Context, id string) (contracts.LocalSecret, bool, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT id, vault_id, type, enc_row, enc_index, enc_payload,
@@ -96,6 +106,7 @@ func (s *Store) GetSecret(ctx context.Context, id string) (contracts.LocalSecret
 	return sec, true, nil
 }
 
+// DeleteSecret удаляет секрет по id.
 func (s *Store) DeleteSecret(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM secrets WHERE id = ?`, id)
 	if err != nil {

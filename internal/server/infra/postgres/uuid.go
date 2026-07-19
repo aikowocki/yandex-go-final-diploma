@@ -13,10 +13,16 @@ func parseUUID(s string) (pgtype.UUID, error) {
 }
 
 // uuidToString конвертирует pgtype.UUID в каноническую строку.
-// Ошибки Value() намеренно игнорируются: pgtype.UUID, прочитанный из БД,
-// всегда валиден, поэтому Value() для него не может завершиться ошибкой.
+//
+// Используем id.String() напрямую, а не id.Value() (database/sql/driver.Valuer):
+// Value() оборачивает результат в interface{} (driver.Value), что на горячем пути
+// (ListRow/ListIndex — по одному вызову на КАЖДУЮ строку списка секретов) даёт лишнюю
+// heap-аллокацию на боксинг строки в интерфейс плюс никому не нужную здесь ошибку.
+// String() возвращает готовую строку без промежуточного interface{} и без error.
+// Найдено через pprof (profiles/base.pprof -> profiles/result.pprof, alloc_space diff).
 func uuidToString(id pgtype.UUID) string {
-	s, _ := id.Value()
-	str, _ := s.(string)
-	return str
+	if !id.Valid {
+		return ""
+	}
+	return id.String()
 }

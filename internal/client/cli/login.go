@@ -14,6 +14,7 @@ type LoginCmd struct {
 	Login string `arg:"" optional:"" help:"Account login. Prompted if omitted."`
 }
 
+// Run выполняет аутентификацию и, при необходимости, разблокировку локальной сессии.
 func (c *LoginCmd) Run(uc *authuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 

@@ -20,10 +20,12 @@ type TextCmd struct {
 	Update TextUpdateCmd `cmd:"" help:"Update a text secret (optimistic locking; resolves conflicts)."`
 }
 
+// TextAddCmd — добавление секрета типа text в папку.
 type TextAddCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run запрашивает поля текстовой заметки и создаёт секрет в указанной папке.
 func (c *TextAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -45,10 +47,12 @@ func (c *TextAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *s
 	return nil
 }
 
+// TextListCmd — список секретов типа text в папке.
 type TextListCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run выводит список секретов типа text в указанной папке.
 func (c *TextListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -68,19 +72,21 @@ func (c *TextListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tTAGS")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tTAGS")
 	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, joinTags(r.Row.Tags))
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, joinTags(r.Row.Tags))
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
+// TextShowCmd — показ полной карточки секрета text.
 type TextShowCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret text list')."`
 }
 
+// Run печатает полную карточку секрета text (row + index + payload).
 func (c *TextShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -110,11 +116,13 @@ func (c *TextShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *
 	return nil
 }
 
+// TextUpdateCmd — редактирование секрета text с оптимистичной блокировкой по версии.
 type TextUpdateCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret text list')."`
 }
 
+// Run обновляет секрет text, разрешая конфликты версии при необходимости.
 func (c *TextUpdateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

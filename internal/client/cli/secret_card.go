@@ -20,10 +20,12 @@ type BankCardCmd struct {
 	Update BankCardUpdateCmd `cmd:"" help:"Update a bank card secret (optimistic locking; resolves conflicts)."`
 }
 
+// BankCardAddCmd — добавление секрета типа bank_card в папку.
 type BankCardAddCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run запрашивает поля банковской карты и создаёт секрет в указанной папке.
 func (c *BankCardAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -45,10 +47,12 @@ func (c *BankCardAddCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secre
 	return nil
 }
 
+// BankCardListCmd — список секретов типа bank_card в папке.
 type BankCardListCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 }
 
+// Run выводит список секретов типа bank_card в указанной папке.
 func (c *BankCardListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -68,19 +72,21 @@ func (c *BankCardListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tTITLE\tLAST4")
+	_, _ = fmt.Fprintln(w, "ID\tTITLE\tLAST4")
 	for _, r := range rows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Last4)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", r.ID, r.Row.Title, r.Row.Last4)
 	}
-	w.Flush()
+	_ = w.Flush()
 	return nil
 }
 
+// BankCardShowCmd — показ полной карточки секрета bank_card (включая PAN/CVV/PIN).
 type BankCardShowCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret card list')."`
 }
 
+// Run печатает полную карточку секрета bank_card (row + index + payload).
 func (c *BankCardShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {
@@ -115,11 +121,13 @@ func (c *BankCardShowCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secr
 	return nil
 }
 
+// BankCardUpdateCmd — редактирование секрета bank_card с оптимистичной блокировкой по версии.
 type BankCardUpdateCmd struct {
 	Vault string `arg:"" help:"Vault name."`
 	ID    string `arg:"" help:"Secret id (from 'secret card list')."`
 }
 
+// Run обновляет секрет bank_card, разрешая конфликты версии при необходимости.
 func (c *BankCardUpdateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, secret *secretuc.UseCase, l *clienti18n.Localizer) error {
 	ctx := context.Background()
 	if err := ensureUnlocked(ctx, auth, l); err != nil {

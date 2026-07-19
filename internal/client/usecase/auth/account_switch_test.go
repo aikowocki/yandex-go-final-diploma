@@ -25,10 +25,11 @@ func TestLogin_SameAccount_KeepsCache(t *testing.T) {
 	res := contracts.LoginResult{Tokens: contracts.Tokens{AccessToken: "a", RefreshToken: "r", UserID: "user-1"}}
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
 
-	uc := authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), local)
+	uc := authuc.New(server, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store, session.New(), local)
 	require.NoError(t, uc.Login(context.Background(), "alice", []byte("pw")))
 
 	vaults, err := local.ListVaults(context.Background())
@@ -47,9 +48,10 @@ func TestLogin_DifferentAccount_WipesCache(t *testing.T) {
 	firstRes := contracts.LoginResult{Tokens: contracts.Tokens{AccessToken: "a1", RefreshToken: "r1", UserID: "user-1"}}
 	server1 := mocks.NewMockServerClient(t)
 	server1.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(firstRes, nil)
+	server1.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store1 := mocks.NewMockTokenStore(t)
 	store1.EXPECT().Save(firstRes.Tokens).Return(nil)
-	uc1 := authuc.New(server1, cryptoimpl.Crypto{}, store1, session.New(), local)
+	uc1 := authuc.New(server1, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store1, session.New(), local)
 	require.NoError(t, uc1.Login(context.Background(), "alice", []byte("pw")))
 
 	vaults, err := local.ListVaults(context.Background())
@@ -60,9 +62,10 @@ func TestLogin_DifferentAccount_WipesCache(t *testing.T) {
 	secondRes := contracts.LoginResult{Tokens: contracts.Tokens{AccessToken: "a2", RefreshToken: "r2", UserID: "user-2"}}
 	server2 := mocks.NewMockServerClient(t)
 	server2.EXPECT().Login(mock.Anything, "bob", []byte("pw2")).Return(secondRes, nil)
+	server2.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store2 := mocks.NewMockTokenStore(t)
 	store2.EXPECT().Save(secondRes.Tokens).Return(nil)
-	uc2 := authuc.New(server2, cryptoimpl.Crypto{}, store2, session.New(), local)
+	uc2 := authuc.New(server2, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store2, session.New(), local)
 	require.NoError(t, uc2.Login(context.Background(), "bob", []byte("pw2")))
 
 	vaultsAfter, err := local.ListVaults(context.Background())
@@ -84,7 +87,7 @@ func TestRegister_DifferentAccount_WipesCache(t *testing.T) {
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(tokens).Return(nil)
 
-	uc := authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), local)
+	uc := authuc.New(server, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store, session.New(), local)
 	require.NoError(t, uc.Register(context.Background(), "carol", []byte("pw")))
 
 	vaults, err := local.ListVaults(context.Background())
@@ -92,8 +95,7 @@ func TestRegister_DifferentAccount_WipesCache(t *testing.T) {
 	assert.Empty(t, vaults, "cache from the previous account must be wiped on register")
 }
 
-// TestReconcileAccount_EmptyUserID_NoOp: сервер без UserID в ответе (например старая версия
-// протокола, или тест с нулевым значением) — не должен вызывать сброс кеша.
+// TestReconcileAccount_EmptyUserID_NoOp: сервер без UserID в ответе — не должен вызывать сброс кеша.
 func TestReconcileAccount_EmptyUserID_NoOp(t *testing.T) {
 	local := memStore()
 	seedVault(t, local, "vault-1")
@@ -101,10 +103,11 @@ func TestReconcileAccount_EmptyUserID_NoOp(t *testing.T) {
 	res := contracts.LoginResult{Tokens: contracts.Tokens{AccessToken: "a", RefreshToken: "r"}} // UserID пуст
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
 
-	uc := authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), local)
+	uc := authuc.New(server, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store, session.New(), local)
 	require.NoError(t, uc.Login(context.Background(), "alice", []byte("pw")))
 
 	vaults, err := local.ListVaults(context.Background())

@@ -21,7 +21,7 @@ import (
 )
 
 func newUseCase(server contracts.ServerClient, store contracts.TokenStore) *authuc.UseCase {
-	return authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), memStore())
+	return authuc.New(server, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store, session.New(), memStore())
 }
 
 // memStore открывает in-memory localstore для тестов (kv-кеш KDF-параметров).
@@ -49,6 +49,24 @@ func encParamsJSON(t *testing.T) []byte {
 	data, err := json.Marshal(testParams())
 	require.NoError(t, err)
 	return data
+}
+
+// makeEncMasterKey строит enc_master_key: оборачивает известный (фиксированный) MasterKey
+// ключом KEK, выведенным из passphrase+salt+params. Возвращает обёртку и сам MasterKey.
+// Имитирует то, что делает SetupEncryption на другом устройстве.
+func makeEncMasterKey(t *testing.T, passphrase string, salt, paramsJSON []byte) (encMK, masterKey []byte) {
+	t.Helper()
+	var params crypto.Params
+	require.NoError(t, json.Unmarshal(paramsJSON, &params))
+	c := cryptoimpl.Crypto{}
+	seed, err := c.DeriveMasterSeed([]byte(passphrase), salt, params)
+	require.NoError(t, err)
+	kek, err := c.DeriveMasterKey(seed)
+	require.NoError(t, err)
+	masterKey = bytes.Repeat([]byte{42}, 32) // фиксированный «случайный» MasterKey
+	encMK, err = c.WrapVaultKey(masterKey, kek)
+	require.NoError(t, err)
+	return encMK, masterKey
 }
 
 func TestRegister_SavesTokens(t *testing.T) {
@@ -94,10 +112,12 @@ func TestLogin_ConfiguredEncryption(t *testing.T) {
 		Tokens:       contracts.Tokens{AccessToken: "a", RefreshToken: "r"},
 		EncKDFSalt:   bytes.Repeat([]byte{1}, 16),
 		EncKDFParams: encParamsJSON(t),
+		EncMasterKey: bytes.Repeat([]byte{2}, 60),
 	}
 
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
@@ -113,6 +133,7 @@ func TestLogin_EncryptionNotConfigured(t *testing.T) {
 
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
@@ -149,12 +170,14 @@ func TestUnlock_EmptyPassphrase(t *testing.T) {
 func TestSetupEncryption_SendsParamsAndDerivesKey(t *testing.T) {
 	var gotSalt, gotParams []byte
 
+	var gotEncMK []byte
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().
-		SetupEncryption(mock.Anything, "access-1", mock.Anything, mock.Anything).
-		Run(func(_ context.Context, _ string, salt, params []byte) {
+		SetupEncryption(mock.Anything, "access-1", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(_ context.Context, _ string, salt, params, encMK []byte) {
 			gotSalt = salt
 			gotParams = params
+			gotEncMK = encMK
 		}).
 		Return(nil)
 
@@ -166,7 +189,8 @@ func TestSetupEncryption_SendsParamsAndDerivesKey(t *testing.T) {
 	require.NoError(t, uc.SetupEncryption(context.Background(), []byte("passphrase")))
 	assert.NotEmpty(t, gotSalt, "salt must be sent to server")
 	assert.NotEmpty(t, gotParams, "params must be sent to server")
-	assert.NotEmpty(t, uc.MasterKeyForTest(), "master key must be derived into session")
+	assert.NotEmpty(t, gotEncMK, "enc_master_key must be sent to server")
+	assert.NotEmpty(t, uc.MasterKeyForTest(), "master key must be in session")
 }
 
 func TestSetupEncryption_EmptyPassphrase(t *testing.T) {
@@ -177,65 +201,78 @@ func TestSetupEncryption_EmptyPassphrase(t *testing.T) {
 	require.ErrorIs(t, err, authuc.ErrEmptyPassphrase)
 }
 
-// TestUnlock_Deterministic: одинаковая passphrase (при одних salt/params) даёт один и тот же
-// MasterKey, а другая passphrase — другой.
-func TestUnlock_Deterministic(t *testing.T) {
+// TestUnlock_Envelope: верная passphrase разворачивает enc_master_key → тот самый MasterKey;
+// неверная passphrase → ошибка (KEK не тот, AEAD не открывается). MasterKey НЕ выводится из
+// пароля напрямую — он случайный и обёрнут KEK.
+func TestUnlock_Envelope(t *testing.T) {
+	salt := bytes.Repeat([]byte{7}, 16)
+	params := encParamsJSON(t)
+	encMK, wantMK := makeEncMasterKey(t, "correct-horse", salt, params)
+
 	res := contracts.LoginResult{
 		Tokens:       contracts.Tokens{AccessToken: "a", RefreshToken: "r"},
-		EncKDFSalt:   bytes.Repeat([]byte{7}, 16),
-		EncKDFParams: encParamsJSON(t),
+		EncKDFSalt:   salt,
+		EncKDFParams: params,
+		EncMasterKey: encMK,
 	}
 
-	unlock := func(pass string) []byte {
+	newUC := func() *authuc.UseCase {
 		server := mocks.NewMockServerClient(t)
 		server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+		server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 		store := mocks.NewMockTokenStore(t)
 		store.EXPECT().Save(res.Tokens).Return(nil)
-
 		uc := newUseCase(server, store)
 		require.NoError(t, uc.Login(context.Background(), "alice", []byte("pw")))
-		require.NoError(t, uc.Unlock(context.Background(), []byte(pass)))
-		return uc.MasterKeyForTest()
+		return uc
 	}
 
-	k1 := unlock("correct-horse")
-	k2 := unlock("correct-horse")
-	k3 := unlock("different")
+	// Верный пароль → получаем исходный MasterKey.
+	uc := newUC()
+	require.NoError(t, uc.Unlock(context.Background(), []byte("correct-horse")))
+	assert.Equal(t, wantMK, uc.MasterKeyForTest(), "correct passphrase must recover the master key")
 
-	require.NotEmpty(t, k1)
-	assert.Equal(t, k1, k2, "same passphrase must yield same master key")
-	assert.NotEqual(t, k1, k3, "different passphrase must yield different master key")
+	// Неверный пароль → ошибка, MasterKey не установлен.
+	uc2 := newUC()
+	err := uc2.Unlock(context.Background(), []byte("wrong"))
+	require.Error(t, err)
+	assert.False(t, uc2.MasterKeySet(), "wrong passphrase must not set master key")
 }
 
 // TestOfflineUnlock_FromCachedKDF: Login кеширует KDF-параметры локально; новый процесс
 // (свежая сессия, тот же localstore) может поднять их из кеша и разблокироваться без сети.
 func TestOfflineUnlock_FromCachedKDF(t *testing.T) {
 	local := memStore()
+	salt := bytes.Repeat([]byte{9}, 16)
+	params := encParamsJSON(t)
+	encMK, wantMK := makeEncMasterKey(t, "correct-horse", salt, params)
 	res := contracts.LoginResult{
 		Tokens:       contracts.Tokens{AccessToken: "a", RefreshToken: "r"},
-		EncKDFSalt:   bytes.Repeat([]byte{9}, 16),
-		EncKDFParams: encParamsJSON(t),
+		EncKDFSalt:   salt,
+		EncKDFParams: params,
+		EncMasterKey: encMK,
 	}
 
 	// Онлайн-логин — параметры KDF оседают в localstore.
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
 
-	online := authuc.New(server, cryptoimpl.Crypto{}, store, session.New(), local)
+	online := authuc.New(server, cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, store, session.New(), local)
 	require.NoError(t, online.Login(context.Background(), "alice", []byte("pw")))
 	require.NoError(t, online.Unlock(context.Background(), []byte("correct-horse")))
-	wantKey := online.MasterKeyForTest()
+	require.Equal(t, wantMK, online.MasterKeyForTest())
 
-	// Новый процесс: сеть недоступна, но кеш KDF на месте → офлайн-разблокировка.
-	offline := authuc.New(mocks.NewMockServerClient(t), cryptoimpl.Crypto{}, mocks.NewMockTokenStore(t), session.New(), local)
+	// Новый процесс: сеть недоступна, но кеш KDF+enc_master_key на месте → офлайн-разблокировка.
+	offline := authuc.New(mocks.NewMockServerClient(t), cryptoimpl.Crypto{}, cryptoimpl.Crypto{}, mocks.NewMockTokenStore(t), session.New(), local)
 	assert.False(t, offline.EncryptionConfigured())
 	require.NoError(t, offline.LoadCachedEncryption(context.Background()))
 	assert.True(t, offline.EncryptionConfigured())
 	require.NoError(t, offline.Unlock(context.Background(), []byte("correct-horse")))
 
-	assert.Equal(t, wantKey, offline.MasterKeyForTest(), "offline unlock must derive the same master key")
+	assert.Equal(t, wantMK, offline.MasterKeyForTest(), "offline unlock must recover the same master key")
 }
 
 func TestLoadCachedEncryption_Empty(t *testing.T) {
@@ -291,6 +328,7 @@ func TestLogin_SaveError(t *testing.T) {
 
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(boom)
@@ -316,7 +354,7 @@ func TestSetupEncryption_ServerError(t *testing.T) {
 	boom := errors.New("setup rpc failed")
 
 	server := mocks.NewMockServerClient(t)
-	server.EXPECT().SetupEncryption(mock.Anything, "access-1", mock.Anything, mock.Anything).Return(boom)
+	server.EXPECT().SetupEncryption(mock.Anything, "access-1", mock.Anything, mock.Anything, mock.Anything).Return(boom)
 
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Load().Return(contracts.Tokens{AccessToken: "access-1"}, nil)
@@ -334,10 +372,12 @@ func TestUnlock_MalformedParams(t *testing.T) {
 		Tokens:       contracts.Tokens{AccessToken: "a", RefreshToken: "r"},
 		EncKDFSalt:   bytes.Repeat([]byte{1}, 16),
 		EncKDFParams: []byte("{not-json"),
+		EncMasterKey: bytes.Repeat([]byte{2}, 60), // непустой, чтобы дойти до разбора params
 	}
 
 	server := mocks.NewMockServerClient(t)
 	server.EXPECT().Login(mock.Anything, "alice", []byte("pw")).Return(res, nil)
+	server.EXPECT().ListVaults(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	store := mocks.NewMockTokenStore(t)
 	store.EXPECT().Save(res.Tokens).Return(nil)
 

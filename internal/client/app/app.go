@@ -33,13 +33,19 @@ func New(cfg *config.ClientConfig) (*Container, error) {
 	}
 
 	tokenStore := keyring.New(cfg.DataDir, !cfg.NoPersist)
+	// Оборачиваем TokenStore проактивным auto-refresh: при Load() проверяет exp JWT
+	// и обновляет пару через RefreshToken RPC если access token скоро протухнет.
+	autoRefreshTokens := keyring.NewAutoRefreshStore(tokenStore, grpcClient)
 	crypto := cryptoimpl.Crypto{}
 	sess := session.New() // общий крипто-материал сессии (MasterKey + открытые VaultKey)
 
-	authUseCase := authuc.New(grpcClient, crypto, tokenStore, sess, local)
-	vaultUseCase := vaultuc.New(grpcClient, crypto, tokenStore, sess, local)
-	secretUseCase := secretuc.New(grpcClient, crypto, tokenStore, sess, local)
-	syncUseCase := syncuc.New(grpcClient, local, tokenStore)
+	authUseCase := authuc.New(grpcClient, crypto, crypto, autoRefreshTokens, sess, local)
+	vaultUseCase := vaultuc.New(grpcClient, crypto, autoRefreshTokens, sess, local)
+	secretUseCase := secretuc.New(grpcClient, crypto, autoRefreshTokens, sess, local, cfg.DataDir)
+	syncUseCase := syncuc.New(grpcClient, local, autoRefreshTokens)
+	syncUseCase.SetBlobUploader(secretUseCase)
+	syncUseCase.SetIndexLoader(secretUseCase)
+	syncUseCase.SetSyncDelay(cfg.SyncDelayMs)
 
 	localizer := providers.NewLocalizer(cfg)
 

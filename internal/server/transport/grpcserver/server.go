@@ -74,6 +74,7 @@ func (s *Server) Ping(ctx context.Context, req *pb.PingRequest) (*pb.PingRespons
 	return &pb.PingResponse{Message: "pong"}, nil
 }
 
+// Register регистрирует нового пользователя и выдаёт пару токенов.
 func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
 	res, err := s.auth.Register(ctx, mapper.RegisterParams(req))
 	if err != nil {
@@ -82,6 +83,7 @@ func (s *Server) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.Reg
 	return mapper.RegisterResponse(res), nil
 }
 
+// SetupEncryption сохраняет параметры KDF и зашифрованный master key текущего пользователя.
 func (s *Server) SetupEncryption(ctx context.Context, req *pb.SetupEncryptionRequest) (*pb.SetupEncryptionResponse, error) {
 	userID, ok := interceptor.UserIDFromContext(ctx)
 	if !ok {
@@ -94,6 +96,7 @@ func (s *Server) SetupEncryption(ctx context.Context, req *pb.SetupEncryptionReq
 	return &pb.SetupEncryptionResponse{}, nil
 }
 
+// Login аутентифицирует пользователя по логину и credential, выдавая пару токенов.
 func (s *Server) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
 	res, err := s.auth.Login(ctx, mapper.LoginParams(req))
 	if err != nil {
@@ -102,6 +105,7 @@ func (s *Server) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResp
 	return mapper.LoginResponse(res), nil
 }
 
+// RefreshToken выдаёт новую пару токенов по действующему refresh-токену.
 func (s *Server) RefreshToken(ctx context.Context, req *pb.RefreshTokenRequest) (*pb.RefreshTokenResponse, error) {
 	res, err := s.auth.RefreshToken(ctx, mapper.RefreshTokenParams(req))
 	if err != nil {

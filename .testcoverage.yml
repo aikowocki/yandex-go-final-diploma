@@ -20,6 +20,6 @@ exclude:
     - _grpc\.pb\.go$
     - cmd/autoupdater
     - cmd/seed
+    - cmd/loadclient          # утилита нагрузочного тестирования, не покрывается юнит-тестами
     - internal/server/usecase/auth/enroll_2fa.go # TODO исключил функционал который пока только в планах
     - internal/server/usecase/auth/verify_2fa.go # убрать после реализации
-    - 

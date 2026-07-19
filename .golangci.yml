@@ -9,7 +9,6 @@ linters:
       rules:
         - name: exported
           severity: warning
-
-issues:
-  exclude-dirs:
-    - api/proto/gen
+  exclusions:
+    paths:
+      - "api/proto/gen/.*"

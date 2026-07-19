@@ -84,9 +84,10 @@ func TestSetupModel_EnterOnNonPersistFieldMovesFocus(t *testing.T) {
 
 func TestSetupModel_EnterOnPersistFieldSaves(t *testing.T) {
 	// config.Save пишет в os.UserConfigDir()/gophkeeper/config.json, а не в dir — подменяем
-	// HOME, чтобы тест не затирал настоящий конфиг пользователя.
+	// HOME/XDG_CONFIG_HOME, чтобы тест не затирал настоящий конфиг пользователя.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 
 	dir := t.TempDir()
 	m := newSetupModel("localhost:9090", dir)
@@ -98,8 +99,10 @@ func TestSetupModel_EnterOnPersistFieldSaves(t *testing.T) {
 	assert.NoError(t, sm.saveErr)
 	require.NotNil(t, cmd)
 
-	savedPath := filepath.Join(home, "Library", "Application Support", "gophkeeper", "config.json")
-	_, err := os.Stat(savedPath)
+	configDir, err := os.UserConfigDir()
+	require.NoError(t, err)
+	savedPath := filepath.Join(configDir, "gophkeeper", "config.json")
+	_, err = os.Stat(savedPath)
 	require.NoError(t, err, "config.json should be written under the fake HOME, not the real user config dir")
 }
 
@@ -115,10 +118,11 @@ func TestSetupModel_TypingUpdatesFocusedField(t *testing.T) {
 
 func TestSetupModel_Save_WritesConfig(t *testing.T) {
 	// config.Save всегда пишет в os.UserConfigDir()/gophkeeper/config.json (реальный конфиг
-	// пользователя), а не в cfg.DataDir — поэтому подменяем HOME на временный каталог, чтобы
-	// тест не затирал настоящий config.json на машине разработчика/CI.
+	// пользователя), а не в cfg.DataDir — поэтому подменяем HOME/XDG_CONFIG_HOME на временный
+	// каталог, чтобы тест не затирал настоящий config.json на машине разработчика/CI.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 
 	dir := t.TempDir()
 	m := newSetupModel("myserver:1234", dir)
@@ -127,7 +131,9 @@ func TestSetupModel_Save_WritesConfig(t *testing.T) {
 	err := m.save()
 	require.NoError(t, err)
 
-	savedPath := filepath.Join(home, "Library", "Application Support", "gophkeeper", "config.json")
+	configDir, cfgErr := os.UserConfigDir()
+	require.NoError(t, cfgErr)
+	savedPath := filepath.Join(configDir, "gophkeeper", "config.json")
 	_, statErr := os.Stat(savedPath)
 	require.NoError(t, statErr, "config.json should be written under the fake HOME, not the real user config dir")
 }

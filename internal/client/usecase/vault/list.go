@@ -1,10 +1,11 @@
 package vault
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
-	"sort"
+	"slices"
 
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
@@ -71,7 +72,7 @@ func (u *UseCase) List(ctx context.Context) ([]DecryptedVault, error) {
 	if err := u.pruneStaleVaults(ctx, seen); err != nil {
 		return nil, err
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	slices.SortFunc(result, func(a, b DecryptedVault) int { return cmp.Compare(a.Name, b.Name) })
 	return result, nil
 }
 
@@ -125,6 +126,6 @@ func (u *UseCase) ListLocal(ctx context.Context) ([]DecryptedVault, error) {
 		u.sess.OpenVault(it.ID, vaultKey)
 		result = append(result, DecryptedVault{ID: it.ID, Name: name, Version: it.Version, SyncEnabled: it.SyncEnabled})
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	slices.SortFunc(result, func(a, b DecryptedVault) int { return cmp.Compare(a.Name, b.Name) })
 	return result, nil
 }

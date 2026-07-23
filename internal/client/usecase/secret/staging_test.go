@@ -71,3 +71,15 @@ func TestStagedFilePath_ErrorIfDirEmpty(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no staged file")
 }
+
+// TestStageFile_RejectsPathTraversal проверяет защиту через os.Root: имя файла, пытающееся
+// выйти за пределы staging-директории секрета.
+func TestStageFile_RejectsPathTraversal(t *testing.T) {
+	dataDir := t.TempDir()
+
+	_, err := StageFile(dataDir, "sec5", "../../escaped.txt", strings.NewReader("payload"))
+	require.Error(t, err)
+
+	_, statErr := os.Stat(filepath.Join(dataDir, "escaped.txt"))
+	assert.True(t, os.IsNotExist(statErr), "traversal не должен создать файл вне staging-директории")
+}

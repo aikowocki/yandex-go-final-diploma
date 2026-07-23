@@ -43,7 +43,7 @@ func BenchmarkRegister(b *testing.B) {
 	ctx := context.Background()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := uc.Register(ctx, auth.RegisterParams{
 			Login:           "bench-user",
 			LoginCredential: []byte("bench-password-123"),
@@ -102,7 +102,7 @@ func BenchmarkLogin_Success(b *testing.B) {
 	ctx := context.Background()
 
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := uc.Login(ctx, auth.LoginParams{
 			Login:           "bench-user",
 			LoginCredential: []byte("bench-password-123"),

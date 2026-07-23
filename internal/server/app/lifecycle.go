@@ -9,6 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -19,38 +21,37 @@ func (c *Container) Run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer stop()
 
-	// Запускаем gRPC в отдельной горутине
-	errCh := make(chan error, 1)
-	go func() {
+	g, groupCtx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
 		slog.Info("starting gRPC server", "addr", c.Config.GRPCAddr)
-		errCh <- c.GRPC.Run(c.Config.GRPCAddr)
-	}()
+		return c.GRPC.Run(c.Config.GRPCAddr)
+	})
 
 	// pprof — отдельный HTTP-listener, поднимается только если явно задан адрес в конфиге.
 	pprofSrv := newPprofServer(c.Config.PprofAddress)
 	if pprofSrv != nil {
-		go func() {
+		g.Go(func() error {
 			slog.Info("starting pprof server", "addr", c.Config.PprofAddress)
 			if err := pprofSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Warn("pprof server stopped", "err", err)
 			}
-		}()
+			return nil
+		})
 	}
 
-	// Ждём либо ошибки запуска, либо сигнала
-	select {
-	case err := <-errCh:
-		return err
-	case <-ctx.Done():
-		slog.Info("shutdown signal received")
-	}
+	// Ждём либо ошибки запуска (groupCtx отменится раньше остановки gRPC/pprof), либо сигнала ОС
+	// (тот же groupCtx унаследует отмену от ctx).
+	<-groupCtx.Done()
+	slog.Info("shutdown signal received")
 
 	// Graceful shutdown с таймаутом
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	c.shutdown(shutdownCtx, pprofSrv)
-	return nil
+
+	return g.Wait()
 }
 
 func (c *Container) shutdown(ctx context.Context, pprofSrv *http.Server) {

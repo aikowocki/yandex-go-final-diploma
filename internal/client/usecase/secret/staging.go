@@ -11,6 +11,10 @@ const pendingUploadsDir = "pending_uploads"
 
 // StageFile копирует файл из reader в staging area и возвращает путь к staged-копии.
 // Создаёт директорию <dataDir>/pending_uploads/<secretID>/ при необходимости.
+//
+// Файл создаётся через os.Root, привязанный к staging-директории:
+// Root.Create резолвит имя относительно корня и возвращает ошибку при попытке выйти за его
+// пределы (через "../" или symlink-escape) — защита на уровне ОС.
 func StageFile(dataDir, secretID, filename string, data io.Reader) (stagedPath string, err error) {
 	dir := filepath.Join(dataDir, pendingUploadsDir, secretID)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -20,8 +24,15 @@ func StageFile(dataDir, secretID, filename string, data io.Reader) (stagedPath s
 	if filename == "" {
 		filename = "blob" // защита от пустого имени (staged-путь не должен совпасть с dir)
 	}
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return "", fmt.Errorf("staging: open root: %w", err)
+	}
+	defer func() { _ = root.Close() }()
+
 	stagedPath = filepath.Join(dir, filename)
-	f, err := os.Create(stagedPath)
+	f, err := root.Create(filename)
 	if err != nil {
 		return "", fmt.Errorf("staging: create: %w", err)
 	}

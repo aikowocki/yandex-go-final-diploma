@@ -18,11 +18,13 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
 	"math/rand"
 	"os"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -258,7 +260,7 @@ func (s *statsCollector) printReport(duration time.Duration) {
 		sampleErr := st.sampleErr
 		st.mu.Unlock()
 
-		sort.Slice(durs, func(i, j int) bool { return durs[i] < durs[j] })
+		slices.SortFunc(durs, func(a, b time.Duration) int { return cmp.Compare(a, b) })
 		count := len(durs)
 		rps := float64(count) / duration.Seconds()
 

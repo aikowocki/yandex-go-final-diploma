@@ -13,23 +13,19 @@ import (
 
 // RecoveryRepo реализует хранение recovery codes.
 type RecoveryRepo struct {
-	db *DB
+	baseRepo
 }
 
 // NewRecoveryRepo создаёт RecoveryRepo поверх переданного пула соединений.
 func NewRecoveryRepo(db *DB) *RecoveryRepo {
-	return &RecoveryRepo{db: db}
-}
-
-func (r *RecoveryRepo) q(ctx context.Context) *gen.Queries {
-	return gen.New(r.db.querier(ctx))
+	return &RecoveryRepo{baseRepo{db: db}}
 }
 
 // StoreCode сохраняет зашифрованный master key под recovery-кодом пользователя.
 func (r *RecoveryRepo) StoreCode(ctx context.Context, userID, codeID string, encMasterKey []byte) error {
-	uid, err := parseUUID(userID)
+	uid, err := parseUUIDOr(userID, auth.ErrUserNotFound)
 	if err != nil {
-		return auth.ErrUserNotFound
+		return err
 	}
 	return r.q(ctx).StoreRecoveryCode(ctx, gen.StoreRecoveryCodeParams{
 		UserID:       uid,
@@ -40,9 +36,9 @@ func (r *RecoveryRepo) StoreCode(ctx context.Context, userID, codeID string, enc
 
 // GetBlob возвращает зашифрованный master key по recovery-коду, если он ещё не использован.
 func (r *RecoveryRepo) GetBlob(ctx context.Context, userID, codeID string) ([]byte, error) {
-	uid, err := parseUUID(userID)
+	uid, err := parseUUIDOr(userID, auth.ErrUserNotFound)
 	if err != nil {
-		return nil, auth.ErrUserNotFound
+		return nil, err
 	}
 	blob, err := r.q(ctx).GetRecoveryBlob(ctx, gen.GetRecoveryBlobParams{
 		UserID: uid,
@@ -59,9 +55,9 @@ func (r *RecoveryRepo) GetBlob(ctx context.Context, userID, codeID string) ([]by
 
 // MarkUsed помечает recovery-код использованным, чтобы его нельзя было применить повторно.
 func (r *RecoveryRepo) MarkUsed(ctx context.Context, userID, codeID string) error {
-	uid, err := parseUUID(userID)
+	uid, err := parseUUIDOr(userID, auth.ErrUserNotFound)
 	if err != nil {
-		return auth.ErrUserNotFound
+		return err
 	}
 	return r.q(ctx).MarkRecoveryCodeUsed(ctx, gen.MarkRecoveryCodeUsedParams{
 		UserID: uid,
@@ -71,9 +67,9 @@ func (r *RecoveryRepo) MarkUsed(ctx context.Context, userID, codeID string) erro
 
 // DeleteAll удаляет все recovery-коды пользователя.
 func (r *RecoveryRepo) DeleteAll(ctx context.Context, userID string) error {
-	uid, err := parseUUID(userID)
+	uid, err := parseUUIDOr(userID, auth.ErrUserNotFound)
 	if err != nil {
-		return auth.ErrUserNotFound
+		return err
 	}
 	return r.q(ctx).DeleteUserRecoveryCodes(ctx, uid)
 }

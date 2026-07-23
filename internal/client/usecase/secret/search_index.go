@@ -2,6 +2,7 @@ package secret
 
 import (
 	"context"
+	"iter"
 	"log/slog"
 	"strings"
 
@@ -94,24 +95,41 @@ func (u *UseCase) decryptIndexGeneric(vaultKey []byte, vaultID, secretID string,
 // matchesQuery ищет подстроку q (уже в нижнем регистре) среди ЛЮБЫХ строковых значений
 // произвольно вложенной JSON-структуры (map/slice/string) — работает одинаково для всех типов
 // секрета без type-specific кода: tags/custom_fields — массивы, остальные поля — top-level строки.
+// Обход ленивый (iter.Seq): для совпадения на первом же листе дальнейший обход дерева
+// не выполняется — короткое замыкание даёт стандартный range-break, без ручного bool-флага.
 func matchesQuery(v any, qLower string) bool {
+	for s := range leafStrings(v) {
+		if containsFold(s, qLower) {
+			return true
+		}
+	}
+	return false
+}
+
+func leafStrings(v any) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		walkLeafStrings(v, yield)
+	}
+}
+
+func walkLeafStrings(v any, yield func(string) bool) bool {
 	switch val := v.(type) {
 	case string:
-		return containsFold(val, qLower)
+		return yield(val)
 	case map[string]any:
 		for _, vv := range val {
-			if matchesQuery(vv, qLower) {
-				return true
+			if !walkLeafStrings(vv, yield) {
+				return false
 			}
 		}
 	case []any:
 		for _, vv := range val {
-			if matchesQuery(vv, qLower) {
-				return true
+			if !walkLeafStrings(vv, yield) {
+				return false
 			}
 		}
 	}
-	return false
+	return true
 }
 
 func containsFold(s, qLower string) bool {

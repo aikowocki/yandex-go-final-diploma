@@ -12,7 +12,7 @@ import (
 
 // VaultRepo реализует vault.Repository поверх sqlc-запросов.
 type VaultRepo struct {
-	db *DB
+	baseRepo
 }
 
 var (
@@ -22,11 +22,7 @@ var (
 
 // NewVaultRepo создаёт VaultRepo поверх переданного пула соединений.
 func NewVaultRepo(db *DB) *VaultRepo {
-	return &VaultRepo{db: db}
-}
-
-func (r *VaultRepo) q(ctx context.Context) *gen.Queries {
-	return gen.New(r.db.querier(ctx))
+	return &VaultRepo{baseRepo{db: db}}
 }
 
 // Create создаёт новую папку (vault) для пользователя.

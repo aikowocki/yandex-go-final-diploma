@@ -15,7 +15,7 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
 
-const refreshThreshold = 2 * time.Minute
+const RefreshThreshold = 2 * time.Minute
 
 // Refresher — узкий интерфейс для вызова RefreshToken.
 type Refresher interface {
@@ -63,7 +63,7 @@ func (s *AutoRefreshStore) Load() (contracts.Tokens, error) {
 		return tokens, nil
 	}
 
-	if time.Until(exp) > refreshThreshold {
+	if time.Until(exp) > RefreshThreshold {
 		// Токен ещё свежий — ничего не делаем.
 		return tokens, nil
 	}

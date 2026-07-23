@@ -12,18 +12,14 @@ import (
 
 // SecretRepo реализует secret.Repository поверх sqlc-запросов.
 type SecretRepo struct {
-	db *DB
+	baseRepo
 }
 
 var _ secret.Repository = (*SecretRepo)(nil)
 
 // NewSecretRepo создаёт SecretRepo поверх переданного пула соединений.
 func NewSecretRepo(db *DB) *SecretRepo {
-	return &SecretRepo{db: db}
-}
-
-func (r *SecretRepo) q(ctx context.Context) *gen.Queries {
-	return gen.New(r.db.querier(ctx))
+	return &SecretRepo{baseRepo{db: db}}
 }
 
 // Create создаёт новый секрет в указанной папке.
@@ -58,9 +54,9 @@ func (r *SecretRepo) Create(ctx context.Context, s domain.Secret) (domain.Secret
 
 // GetForUpdate читает полную строку секрета под блокировкой (FOR UPDATE) внутри транзакции.
 func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) (domain.Secret, error) {
-	sid, err := parseUUID(secretID)
+	sid, err := parseUUIDOr(secretID, secret.ErrSecretNotFound)
 	if err != nil {
-		return domain.Secret{}, secret.ErrSecretNotFound
+		return domain.Secret{}, err
 	}
 	uid, err := parseUUID(userID)
 	if err != nil {
@@ -69,10 +65,7 @@ func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) 
 
 	row, err := r.q(ctx).GetSecretForUpdate(ctx, gen.GetSecretForUpdateParams{ID: sid, UserID: uid})
 	if err != nil {
-		if isNoRows(err) {
-			return domain.Secret{}, secret.ErrSecretNotFound
-		}
-		return domain.Secret{}, fmt.Errorf("get secret for update: %w", err)
+		return domain.Secret{}, wrapNotFound(err, secret.ErrSecretNotFound, "get secret for update")
 	}
 
 	sec := domain.Secret{
@@ -96,9 +89,9 @@ func (r *SecretRepo) GetForUpdate(ctx context.Context, secretID, userID string) 
 
 // UpdateFields применяет новые шифротексты и инкрементирует версию.
 func (r *SecretRepo) UpdateFields(ctx context.Context, secretID string, encRow, encIndex, encPayload []byte) (int64, error) {
-	sid, err := parseUUID(secretID)
+	sid, err := parseUUIDOr(secretID, secret.ErrSecretNotFound)
 	if err != nil {
-		return 0, secret.ErrSecretNotFound
+		return 0, err
 	}
 
 	version, err := r.q(ctx).UpdateSecretFields(ctx, gen.UpdateSecretFieldsParams{
@@ -115,9 +108,9 @@ func (r *SecretRepo) UpdateFields(ctx context.Context, secretID string, encRow, 
 
 // SoftDelete помечает секрет удалённым и инкрементирует версию.
 func (r *SecretRepo) SoftDelete(ctx context.Context, secretID string) (int64, error) {
-	sid, err := parseUUID(secretID)
+	sid, err := parseUUIDOr(secretID, secret.ErrSecretNotFound)
 	if err != nil {
-		return 0, secret.ErrSecretNotFound
+		return 0, err
 	}
 
 	version, err := r.q(ctx).SoftDeleteSecret(ctx, sid)
@@ -129,9 +122,9 @@ func (r *SecretRepo) SoftDelete(ctx context.Context, secretID string) (int64, er
 
 // AttachBlob прописывает blob_ref/blob_size и инкрементирует версию.
 func (r *SecretRepo) AttachBlob(ctx context.Context, secretID, blobRef string, blobSize int64) (int64, error) {
-	sid, err := parseUUID(secretID)
+	sid, err := parseUUIDOr(secretID, secret.ErrSecretNotFound)
 	if err != nil {
-		return 0, secret.ErrSecretNotFound
+		return 0, err
 	}
 
 	version, err := r.q(ctx).AttachBlob(ctx, gen.AttachBlobParams{
@@ -216,10 +209,10 @@ func (r *SecretRepo) ListIndex(ctx context.Context, vaultID, userID string) ([]d
 
 // GetPayload возвращает зашифрованный payload секрета, принадлежащего пользователю.
 func (r *SecretRepo) GetPayload(ctx context.Context, secretID, userID string) (domain.Secret, error) {
-	sid, err := parseUUID(secretID)
+	// Невалидный id → секрет не найден (не раскрываем детали).
+	sid, err := parseUUIDOr(secretID, secret.ErrSecretNotFound)
 	if err != nil {
-		// Невалидный id → секрет не найден (не раскрываем детали).
-		return domain.Secret{}, secret.ErrSecretNotFound
+		return domain.Secret{}, err
 	}
 	uid, err := parseUUID(userID)
 	if err != nil {
@@ -228,10 +221,7 @@ func (r *SecretRepo) GetPayload(ctx context.Context, secretID, userID string) (d
 
 	row, err := r.q(ctx).GetSecretPayload(ctx, gen.GetSecretPayloadParams{ID: sid, UserID: uid})
 	if err != nil {
-		if isNoRows(err) {
-			return domain.Secret{}, secret.ErrSecretNotFound
-		}
-		return domain.Secret{}, fmt.Errorf("get secret payload: %w", err)
+		return domain.Secret{}, wrapNotFound(err, secret.ErrSecretNotFound, "get secret payload")
 	}
 
 	return domain.Secret{

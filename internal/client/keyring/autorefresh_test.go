@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -137,4 +138,62 @@ func TestAutoRefreshStore_Load_RefreshErrorFallsBackToOldToken(t *testing.T) {
 	require.NoError(t, err, "ошибка refresh не должна возвращаться наружу (offline fallback)")
 	assert.Equal(t, expiredToken, got.AccessToken)
 	assert.Empty(t, inner.saved, "новый токен не должен сохраняться при ошибке refresh")
+}
+
+// Тесты порога проактивного обновления (refreshThreshold = 2 минуты) на
+// синтетическом времени testing/synctest.
+//
+// exp у JWT хранится в целых Unix-секундах, поэтому сдвиги считаем в целых
+// секундах, чтобы округление при кодировании токена не съедало границу.
+
+func TestAutoRefreshStore_Load_ExactlyAtThresholdTriggersRefresh(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// time.Until(exp) == refreshThreshold: условие "> threshold" ложно,
+		// значит должен сработать refresh (порог не строгий "чуть меньше").
+		expiringToken := makeJWT(t, time.Now().Add(keyring.RefreshThreshold))
+		inner := &fakeTokenStore{tokens: contracts.Tokens{AccessToken: expiringToken, RefreshToken: "r"}}
+		newAccessToken := makeJWT(t, time.Now().Add(time.Hour))
+		refresher := &fakeRefresher{result: contracts.LoginResult{
+			Tokens: contracts.Tokens{AccessToken: newAccessToken, RefreshToken: "new-r"},
+		}}
+		s := keyring.NewAutoRefreshStore(inner, refresher)
+
+		got, err := s.Load()
+		require.NoError(t, err)
+		assert.Equal(t, newAccessToken, got.AccessToken)
+		assert.Equal(t, 1, refresher.calls, "на границе порога refresh должен сработать")
+	})
+}
+
+func TestAutoRefreshStore_Load_JustAboveThresholdSkipsRefresh(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// time.Until(exp) == threshold + 1s > threshold: refresh не нужен.
+		freshToken := makeJWT(t, time.Now().Add(keyring.RefreshThreshold+time.Second))
+		inner := &fakeTokenStore{tokens: contracts.Tokens{AccessToken: freshToken, RefreshToken: "r"}}
+		refresher := &fakeRefresher{}
+		s := keyring.NewAutoRefreshStore(inner, refresher)
+
+		got, err := s.Load()
+		require.NoError(t, err)
+		assert.Equal(t, freshToken, got.AccessToken)
+		assert.Equal(t, 0, refresher.calls, "чуть выше порога refresh не должен вызываться")
+	})
+}
+
+func TestAutoRefreshStore_Load_JustBelowThresholdTriggersRefresh(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		// time.Until(exp) == threshold - 1s <= threshold: refresh нужен.
+		expiringToken := makeJWT(t, time.Now().Add(keyring.RefreshThreshold-time.Second))
+		inner := &fakeTokenStore{tokens: contracts.Tokens{AccessToken: expiringToken, RefreshToken: "r"}}
+		newAccessToken := makeJWT(t, time.Now().Add(time.Hour))
+		refresher := &fakeRefresher{result: contracts.LoginResult{
+			Tokens: contracts.Tokens{AccessToken: newAccessToken, RefreshToken: "new-r"},
+		}}
+		s := keyring.NewAutoRefreshStore(inner, refresher)
+
+		got, err := s.Load()
+		require.NoError(t, err)
+		assert.Equal(t, newAccessToken, got.AccessToken)
+		assert.Equal(t, 1, refresher.calls, "чуть ниже порога refresh должен сработать")
+	})
 }

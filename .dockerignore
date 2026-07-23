@@ -1,0 +1,15 @@
+# Build artifacts / VCS / IDE — не нужны в образе и мешают кешу COPY . .
+.git
+.github
+.idea
+bin
+coverage.out
+*.out
+.DS_Store
+
+# Документация
+README.md
+*.md
+
+# Локальные данные
+*.db

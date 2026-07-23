@@ -1,0 +1,108 @@
+package cli
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	clienti18n "github.com/aikowocki/yandex-go-final-diploma/internal/client/i18n"
+	authuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/auth"
+	vaultuc "github.com/aikowocki/yandex-go-final-diploma/internal/client/usecase/vault"
+)
+
+// errVaultNotFound / errVaultAmbiguous — резолв папок по имени в CLI.
+var (
+	errVaultNotFound  = errors.New("vault not found by name")
+	errVaultAmbiguous = errors.New("multiple vaults with this name, use a unique name")
+)
+
+// VaultCmd — группа команд папок.
+type VaultCmd struct {
+	Create VaultCreateCmd `cmd:"" help:"Create a new vault."`
+	List   VaultListCmd   `cmd:"" help:"List vaults."`
+}
+
+// VaultCreateCmd — создание новой папки.
+type VaultCreateCmd struct {
+	Name string `arg:"" help:"Vault name."`
+}
+
+// Run создаёт новую папку с указанным именем.
+func (c *VaultCreateCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *clienti18n.Localizer) error {
+	ctx := context.Background()
+	if err := ensureUnlocked(ctx, auth, l); err != nil {
+		return err
+	}
+
+	if _, err := vault.Create(ctx, c.Name); err != nil {
+		return err
+	}
+	fmt.Println(l.T("vault_created"))
+	return nil
+}
+
+// VaultListCmd — список папок аккаунта.
+type VaultListCmd struct{}
+
+// Run выводит список папок аккаунта.
+func (c *VaultListCmd) Run(auth *authuc.UseCase, vault *vaultuc.UseCase, l *clienti18n.Localizer) error {
+	ctx := context.Background()
+	if err := ensureUnlocked(ctx, auth, l); err != nil {
+		return err
+	}
+
+	vaults, err := vault.List(ctx)
+	if err != nil {
+		return err
+	}
+	if len(vaults) == 0 {
+		fmt.Println(l.T("vault_empty"))
+		return nil
+	}
+	for _, v := range vaults {
+		fmt.Printf("%s\t(v%d)\n", v.Name, v.Version)
+	}
+	return nil
+}
+
+// openVaultByName открывает папку (unwrap VaultKey в сессию) и резолвит id по имени.
+// Сначала пробует ЛОКАЛЬНЫЙ кеш (работает оффлайн); если папка не найдена локально —
+// делает фолбэк на сервер (заодно наполняя кеш). Так secret-команды работают без сети,
+// если кеш уже прогрет предыдущим login/sync/create.
+func openVaultByName(ctx context.Context, vault *vaultuc.UseCase, name string) (string, error) {
+	local, err := vault.ListLocal(ctx)
+	if err != nil {
+		return "", err
+	}
+	id, err := resolveVaultID(local, name)
+	if err == nil || !errors.Is(err, errVaultNotFound) {
+		return id, err
+	}
+
+	// Локально не нашли — пробуем сервер (может быть, кеш ещё не прогрет).
+	remote, rerr := vault.List(ctx)
+	if rerr != nil {
+		return "", err // возвращаем исходный "not found", сеть недоступна
+	}
+	return resolveVaultID(remote, name)
+}
+
+// resolveVaultID ищет единственную папку по имени среди расшифрованных.
+func resolveVaultID(vaults []vaultuc.DecryptedVault, name string) (string, error) {
+	var id string
+	matches := 0
+	for _, v := range vaults {
+		if v.Name == name {
+			id = v.ID
+			matches++
+		}
+	}
+	switch {
+	case matches == 0:
+		return "", errVaultNotFound
+	case matches > 1:
+		return "", errVaultAmbiguous
+	default:
+		return id, nil
+	}
+}

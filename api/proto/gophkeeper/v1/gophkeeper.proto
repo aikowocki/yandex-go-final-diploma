@@ -1,0 +1,285 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/aikowocki/yandex-go-final-diploma/api/proto/gen/gophkeeper/v1";
+
+// AuthService — аутентификация и служебные методы.
+service AuthService {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc SetupEncryption(SetupEncryptionRequest) returns (SetupEncryptionResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  // Recovery codes — одноразовые коды восстановления MasterKey.
+  rpc StoreRecoveryCodes(StoreRecoveryCodesRequest) returns (StoreRecoveryCodesResponse);
+  rpc GetRecoveryBlob(GetRecoveryBlobRequest) returns (GetRecoveryBlobResponse);
+  rpc MarkRecoveryCodeUsed(MarkRecoveryCodeUsedRequest) returns (MarkRecoveryCodeUsedResponse);
+}
+
+// VaultService — CRUD папок
+service VaultService {
+  rpc CreateVault(CreateVaultRequest) returns (CreateVaultResponse);
+  rpc ListVaults(ListVaultsRequest) returns (ListVaultsResponse);
+  rpc CheckFreshness(CheckFreshnessRequest) returns (CheckFreshnessResponse); // версии всех папок для sync
+}
+
+// SecretService — секреты по тирам.
+service SecretService {
+  rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse);
+  rpc UpdateSecret(UpdateSecretRequest) returns (UpdateSecretResponse); // оптимистичная блокировка по base_version
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse); // soft-delete по base_version
+  rpc ListRow(ListRowRequest) returns (ListRowResponse);       // Tier 2a
+  rpc ListIndex(ListIndexRequest) returns (ListIndexResponse); // Tier 2b
+  rpc GetPayload(GetPayloadRequest) returns (GetPayloadResponse); // Tier 3
+}
+
+// BlobService — потоковая загрузка/скачивание крупных бинарных секретов (type=binary).
+// Сервер транзитом кладёт/читает уже зашифрованные клиентом чанки (ciphertext) в/из MinIO,
+// не расшифровывая их (E2E). Порядок для CreateSecret(type=binary):
+//  1) CreateSecret с blob_ref пустым;
+//  2) UploadBlob (client-streaming) с этим secret_id — заливает чанки;
+//  3) AttachBlob — прописывает blob_ref/blob_size, полученные от UploadBlob, к секрету.
+service BlobService {
+  rpc UploadBlob(stream UploadBlobChunk) returns (UploadBlobResult);
+  rpc DownloadBlob(DownloadBlobRequest) returns (stream DownloadBlobChunk);
+  rpc AttachBlob(AttachBlobRequest) returns (AttachBlobResponse);
+}
+
+// UploadBlobChunk — один чанк потока загрузки. secret_id передаётся в первом сообщении потока
+// (клиент должен слать одно и то же secret_id во всех чанках одной загрузки).
+message UploadBlobChunk {
+  string secret_id = 1;
+  bytes data = 2; // зашифрованный чанк (потоковый AEAD клиента, тег на чанк)
+}
+
+message UploadBlobResult {
+  string blob_ref = 1;  // ключ объекта в MinIO
+  int64 blob_size = 2;  // итоговый размер объекта (зашифрованных байт) в MinIO
+}
+
+message DownloadBlobRequest {
+  string secret_id = 1;
+}
+
+message DownloadBlobChunk {
+  bytes data = 1;
+}
+
+message AttachBlobRequest {
+  string secret_id = 1;
+  int64 base_version = 2; // оптимистичная блокировка, та же семантика, что и UpdateSecret
+  string blob_ref = 3;
+  int64 blob_size = 4;
+}
+
+message AttachBlobResponse {
+  int64 version = 1;
+}
+
+// SecretType — тип секрета (открытое поле). Значения зеркалят server domain.SecretType.
+enum SecretType {
+  SECRET_TYPE_UNSPECIFIED = 0;
+  SECRET_TYPE_LOGIN_PASSWORD = 1;
+  SECRET_TYPE_TEXT = 2;
+  SECRET_TYPE_BINARY = 3;
+  SECRET_TYPE_BANK_CARD = 4;
+  SECRET_TYPE_TOTP = 5;
+}
+
+message CreateVaultRequest {
+  bytes wrapped_vault_key = 1; // VaultKey под MasterKey
+  bytes enc_name = 2;          // имя папки под VaultKey
+}
+
+message CreateVaultResponse {
+  string vault_id = 1;
+}
+
+message ListVaultsRequest {}
+
+message Vault {
+  string vault_id = 1;
+  bytes wrapped_vault_key = 2;
+  bytes enc_name = 3;
+  int64 version = 4;
+}
+
+message ListVaultsResponse {
+  repeated Vault vaults = 1;
+}
+
+message CheckFreshnessRequest {}
+
+message VaultVersion {
+  string vault_id = 1;
+  int64 version = 2;
+}
+
+message CheckFreshnessResponse {
+  repeated VaultVersion vaults = 1;
+}
+
+message CreateSecretRequest {
+  string vault_id = 1;
+  SecretType type = 2;
+  bytes enc_row = 3;
+  bytes enc_index = 4;
+  bytes enc_payload = 5; // может быть пустым
+  string secret_id = 6;  // UUID генерирует клиент (нужен для AAD-привязки шифротекста)
+}
+
+message CreateSecretResponse {
+  string secret_id = 1;
+}
+
+message UpdateSecretRequest {
+  string secret_id = 1;
+  int64 base_version = 2; // версия, от которой клиент отталкивается (оптимистичная блокировка)
+  bytes enc_row = 3;
+  bytes enc_index = 4;
+  bytes enc_payload = 5;
+}
+
+message UpdateSecretResponse {
+  int64 version = 1; // новая версия после успешного обновления
+}
+
+message DeleteSecretRequest {
+  string secret_id = 1;
+  int64 base_version = 2;
+}
+
+message DeleteSecretResponse {}
+
+// SecretConflict — деталь gRPC-статуса Aborted при конфликте версий: полная актуальная
+// серверная версия секрета (все три тира), чтобы клиент показал её без отдельного запроса.
+message SecretConflict {
+  string secret_id = 1;
+  SecretType type = 2;
+  int64 version = 3;
+  bytes enc_row = 4;
+  bytes enc_index = 5;
+  bytes enc_payload = 6;
+}
+
+message ListRowRequest {
+  string vault_id = 1;
+}
+
+message SecretRow {
+  string secret_id = 1;
+  SecretType type = 2;
+  int64 version = 3;
+  bytes enc_row = 4;
+}
+
+message ListRowResponse {
+  repeated SecretRow secrets = 1;
+}
+
+message ListIndexRequest {
+  string vault_id = 1;
+}
+
+message SecretIndex {
+  string secret_id = 1;
+  int64 version = 2;
+  bytes enc_index = 3;
+}
+
+message ListIndexResponse {
+  repeated SecretIndex secrets = 1;
+}
+
+message GetPayloadRequest {
+  string secret_id = 1;
+}
+
+message GetPayloadResponse {
+  string secret_id = 1;
+  SecretType type = 2;
+  int64 version = 3;
+  bytes enc_payload = 4;
+}
+
+message PingRequest {}
+
+message PingResponse {
+  string message = 1;
+}
+
+message RegisterRequest {
+  string login = 1;
+  bytes login_credential = 2; // уходит на сервер как есть, по TLS; сервер сам хеширует (Argon2id)
+}
+
+message RegisterResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string user_id = 3; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+}
+
+message SetupEncryptionRequest {
+  // user_id берётся из access-токена (JWT-интерцептор), в запросе не передаётся.
+  bytes enc_kdf_salt = 1;
+  bytes enc_kdf_params = 2; // JSON crypto.Params
+  bytes enc_master_key = 3; // случайный MasterKey, обёрнутый KEK
+}
+
+message SetupEncryptionResponse {}
+
+message LoginRequest {
+  string login = 1;
+  bytes login_credential = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bytes enc_kdf_salt = 3;
+  bytes enc_kdf_params = 4;
+  string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+  bytes enc_master_key = 6; // MasterKey, обёрнутый KEK
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  bytes enc_kdf_salt = 3;
+  bytes enc_kdf_params = 4;
+  string user_id = 5; // клиент сверяет с закешированным user_id, чтобы обнаружить смену аккаунта
+  bytes enc_master_key = 6; // MasterKey, обёрнутый KEK
+}
+
+
+// --- Recovery Codes ---
+
+message RecoveryCodeEntry {
+  string code_id = 1;          // SHA256(code)[:8] hex — для поиска без раскрытия кода
+  bytes enc_master_key = 2;    // MasterKey, зашифрованный recovery_key
+}
+
+message StoreRecoveryCodesRequest {
+  repeated RecoveryCodeEntry codes = 1; // обычно 5 записей
+}
+
+message StoreRecoveryCodesResponse {}
+
+message GetRecoveryBlobRequest {
+  string code_id = 1;
+}
+
+message GetRecoveryBlobResponse {
+  bytes enc_master_key = 1; // зашифрованный MasterKey для этого code_id
+}
+
+message MarkRecoveryCodeUsedRequest {
+  string code_id = 1;
+}
+
+message MarkRecoveryCodeUsedResponse {}

@@ -1,0 +1,109 @@
+version: "3"
+
+tasks:
+  proto-generate:
+    desc: Генерирует Go код из proto файлов
+    cmds:
+      - rm -rf api/proto/gen
+      - buf generate api/proto
+
+  sqlc-generate:
+    desc: Генерирует Go код из SQL-запросов (sqlc.yaml)
+    cmds:
+      - sqlc generate
+
+  mocks-generate:
+    desc: Генерирует моки интерфейсов через mockery (.mockery.yaml)
+    cmds:
+      - mockery
+
+  generate:
+    desc: Прогнать всю кодогенерацию (proto, sqlc, mocks)
+    cmds:
+      - task: proto-generate
+      - task: sqlc-generate
+      - task: mocks-generate
+
+  migrate-create:
+    desc: Создать новую миграцию
+    cmds:
+      - migrate create -ext sql -dir internal/server/infra/postgres/migrations -format 20060102150405 {{.CLI_ARGS}}
+
+  build-server:
+    desc: Собрать сервер
+    cmds:
+      - go build -o bin/gophkeeper-server ./cmd/server
+
+  build-client:
+    desc: Собрать клиент
+    vars:
+      VERSION: '{{default "dev" .VERSION}}'
+      BUILD_DATE:
+        sh: date -u +%Y-%m-%dT%H:%M:%SZ
+    cmds:
+      - go build -ldflags "-X main.version={{.VERSION}} -X main.buildDate={{.BUILD_DATE}}" -o bin/gophkeeper-client ./cmd/client
+
+  build:
+    desc: Собрать сервер и клиент
+    cmds:
+      - task: build-server
+      - task: build-client
+
+  run-server:
+    desc: Запустить бинарник сервера
+    cmds:
+      - go run ./cmd/server
+
+  run-client:
+    desc: Запустить бинарник клиента
+    cmds:
+      - go run ./cmd/client {{.CLI_ARGS}}
+
+  docker-up:
+    desc: Поднять сервер в докере (postgres + server)
+    dir: deployments
+    cmds:
+      - docker compose up --build -d
+
+  docker-rebuild:
+    desc: Пересобрать образ сервера без кеша и перезапустить
+    dir: deployments
+    cmds:
+      - docker compose build --no-cache server
+      - docker compose up -d --force-recreate server
+
+  docker-down:
+    desc: Остановить сервер
+    dir: deployments
+    cmds:
+      - docker compose down
+
+  docker-reset:
+    desc: Полный сброс — остановить, удалить volumes (БД + MinIO), пересобрать и поднять заново
+    dir: deployments
+    cmds:
+      - docker compose down -v
+      - docker compose up --build -d
+
+  lint:
+    desc: Прогнать golangci-lint (включая проверку документации экспортируемых сущностей)
+    cmds:
+      - golangci-lint run ./...
+
+  install-go-test-coverage:
+    desc: Установить go-test-coverage (для проверки порога покрытия, исключая generated-код)
+    cmds:
+      - go install github.com/vladopajic/go-test-coverage/v2@latest
+
+  coverage:
+    desc: Прогнать тесты с покрытием и проверить порог
+    deps: [install-go-test-coverage]
+    cmds:
+      - go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+      - '{{.GOBIN}}/go-test-coverage --config=./.testcoverage.yml'
+    vars:
+      GOBIN:
+        sh: go env GOPATH | xargs -I{} echo {}/bin
+
+  cover:
+   go-test-coverage --config=./.testcoverage.yml 2>&1 | grep -i "total test coverage\|threshold"

@@ -15,6 +15,8 @@ import (
 	"github.com/aikowocki/yandex-go-final-diploma/internal/client/contracts"
 )
 
+// RefreshThreshold — если до истечения access-токена осталось меньше этого времени,
+// Load проактивно обновляет пару токенов через RefreshToken RPC.
 const RefreshThreshold = 2 * time.Minute
 
 // Refresher — узкий интерфейс для вызова RefreshToken.

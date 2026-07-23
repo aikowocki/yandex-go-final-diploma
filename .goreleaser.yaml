@@ -29,6 +29,11 @@ archives:
         formats: [zip]
     name_template: >-
       {{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    # По умолчанию goreleaser кладёт в архив только license*/readme*/changelog* —
+    # docs/ (скриншот и ТЗ, на которые ссылается README) нужно указать явно.
+    files:
+      - README.md
+      - docs/*
 
 checksum:
   name_template: checksums.txt
